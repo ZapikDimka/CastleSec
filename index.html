@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CastleSec — Final Version</title>
+    <style>
+        :root {
+            --bg: #0b0f16;
+            --card: #121a27;
+            --card2: #0f1622;
+            --text: #e8eefc;
+            --muted: #a9b4cf;
+            --accent: #6aa9ff;
+            --danger: #ff6a6a;
+            --ok: #65d48b;
+            --border: rgba(255,255,255,.08);
+            --overlay: rgba(0,0,0,.85);
+            --input-bg: rgba(0,0,0,.4);
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: radial-gradient(1200px 600px at 50% -20%, rgba(106,169,255,.15), transparent 60%) , var(--bg);
+            color: var(--text);
+            font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+            line-height: 1.4;
+            padding: 24px;
+            display: grid;
+            place-items: center;
+            min-height: 100vh;
+        }
+        .wrap { width: min(980px, 100%); display: grid; gap: 16px; }
+        header h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
+
+        .grid { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; }
+        @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+
+        /* Cards */
+        .card {
+            background: linear-gradient(180deg, rgba(255,255,255,.03), transparent 40%), var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 12px 40px rgba(0,0,0,.35);
+            position: relative;
+            display: flex; flex-direction: column;
+        }
+        .top { padding: 16px; border-bottom: 1px solid var(--border); display: grid; gap: 6px; }
+        .pillrow { display:flex; gap:8px; flex-wrap: wrap; }
+        .pill {
+            font-size: 12px; padding: 4px 10px; background: rgba(255,255,255,.06);
+            border: 1px solid var(--border); color: var(--muted); border-radius: 999px;
+        }
+        .sceneTitle { margin: 0; font-size: 18px; }
+        .sceneSub { margin: 0; color: var(--muted); font-size: 13px; }
+
+        .scene { display: grid; gap: 14px; padding: 16px; flex-grow: 1; }
+
+        /* Image Container - Виправлено для фото */
+        .imageContainer {
+            width: 100%;
+            height: 240px; /* Фіксована висота для стабільності */
+            border-radius: 14px;
+            border: 1px solid var(--border);
+            background: var(--card2);
+            overflow: hidden; /* Обрізає зайве */
+            display: flex; align-items: center; justify-content: center;
+        }
+        .imageContainer img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* Картинка заповнює блок, не спотворюючись */
+            display: block;
+        }
+
+        .sceneDesc {
+            font-size: 14px; color: var(--text);
+            background: rgba(255,255,255,0.03);
+            padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+        }
+
+        /* Controls */
+        .actions { display: grid; gap: 10px; }
+        .row { display:flex; gap:10px; flex-wrap: wrap; }
+        button {
+            appearance: none; border: 1px solid var(--border); background: rgba(255,255,255,.06);
+            color: var(--text); border-radius: 12px; padding: 10px 16px; font-size: 14px;
+            cursor: pointer; transition: all .15s ease;
+        }
+        button:hover { background: rgba(255,255,255,.09); }
+        button.primary { background: rgba(106,169,255,.14); border-color: rgba(106,169,255,.35); }
+        button.locked { background: rgba(255,106,106,.08); border-color: rgba(255,106,106,.2); color: var(--danger); }
+        button.item-btn { background: rgba(101,212,139,.14); border-color: rgba(101,212,139,.35); color: #d4fce2; }
+        button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Terminal Modal */
+        .overlay {
+            position: absolute; inset: 0; background: var(--overlay);
+            display: none; align-items: center; justify-content: center; padding: 16px; z-index: 50;
+            backdrop-filter: blur(4px);
+        }
+        .overlay.show { display: flex; }
+        .modal {
+            width: min(720px, 100%); border-radius: 16px; border: 1px solid var(--border);
+            background: linear-gradient(180deg, #191e28, var(--card));
+            box-shadow: 0 20px 70px rgba(0,0,0,.8); overflow: hidden;
+        }
+        .modalTop { padding: 14px 16px; border-bottom: 1px solid var(--border); background: rgba(0,0,0,.2); }
+        .modalBody { padding: 16px; display: grid; gap: 12px; }
+
+        .input-group label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+        .hack-input {
+            width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+            color: var(--text); padding: 10px; border-radius: 8px; font-family: monospace;
+        }
+        .codeBox {
+            background: #000; padding: 12px; border-radius: 8px; font-family: monospace;
+            font-size: 12px; color: #a9b4cf; border: 1px solid var(--border); white-space: pre-wrap; line-height: 1.5;
+        }
+        .hl-sql { color: #e8eefc; font-weight: bold; }
+        .hl-val { color: var(--ok); }
+        .comment { color: #6a6a6a; font-style: italic; }
+
+        .modalBottom { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 10px; }
+        .status-area { margin-right: auto; font-size: 12px; color: var(--muted); align-self: center; }
+        .status-area.error { color: var(--danger); }
+        .status-area.success { color: var(--ok); }
+
+        /* Inventory Styles */
+        .inv-list { display: grid; gap: 8px; }
+        .inv-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255,255,255,.03);
+        }
+        .inv-name { font-size: 13px; }
+        .inv-status { font-size: 11px; color: var(--muted); }
+        .equip-badge { background: var(--ok); color: #000; padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; display: none; }
+        .inv-item.equipped .equip-badge { display: inline-block; }
+
+        .log {
+            border: 1px solid var(--border); background: rgba(255,255,255,.03);
+            border-radius: 14px; padding: 12px; height: 150px; overflow: auto;
+            font-family: monospace; font-size: 12px; color: rgba(232,238,252,.82); white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>CastleSec — Graph, SQL & Inventory</h1>
+    </header>
+
+    <div class="grid">
+        <div class="card">
+
+            <div class="overlay" id="sqlOverlay">
+                <div class="modal">
+                    <div class="modalTop">
+                        <h3 style="margin:0; font-size:15px">🔒 Security Gate: Colonel's Office</h3>
+                        <p style="margin:5px 0 0 0; font-size: 12px; color: var(--muted);">Введіть облікові дані адміністратора.</p>
+                    </div>
+                    <div class="modalBody">
+                        <div class="codeBox" id="sqlPreview">SELECT * FROM users WHERE u='...' AND p='...'</div>
+
+                        <div class="input-group">
+                            <label>Login (Username):</label>
+                            <input type="text" id="hackUser" class="hack-input" placeholder="admin" autocomplete="off">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Password:</label>
+                            <input type="text" id="hackPass" class="hack-input" placeholder="********" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="modalBottom">
+                        <div class="status-area" id="hackStatus">Waiting...</div>
+                        <button onclick="closeTerminal()">Cancel</button>
+                        <button class="primary" onclick="executeHack()">Login</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="top">
+                <div class="pillrow">
+                    <div class="pill">Node: <strong id="nodeId">start</strong></div>
+                    <div class="pill">Zone: <strong id="zoneName">Corridor</strong></div>
+                </div>
+                <h2 class="sceneTitle" id="sceneTitle">Loading...</h2>
+                <p class="sceneSub" id="sceneSub">Loading...</p>
+            </div>
+
+            <div class="scene">
+                <div class="imageContainer" id="sceneImgBox">
+                </div>
+
+                <div class="sceneDesc" id="sceneDescText">
+                    Loading description...
+                </div>
+
+                <div class="actions">
+                    <div class="row" id="roomActions"></div>
+                    <div class="row" id="navButtons"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="top"><h3 style="margin:0; font-size:14px">Інвентар & Стан</h3></div>
+            <div class="scene">
+                <div id="inventoryContainer" class="inv-list">
+                    <div style="font-size:13px; color:var(--muted); text-align:center;">Інвентар порожній</div>
+                </div>
+
+                <div style="margin-top: auto;">
+                    <div style="font-size:12px; color:var(--muted); margin-bottom:5px;">System Log:</div>
+                    <div class="log" id="gameLog"></div>
+                    <button class="warn" onclick="resetGame()" style="width:100%; margin-top:10px;">Reset Demo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // --- STATE ---
+    const State = {
+        currentNode: "start_hall",
+        flags: {
+            doorHacked: false,
+        },
+        inventory: new Set(), // Set of item IDs
+        equipped: null // ID of equipped item
+    };
+
+    const Items = {
+        "colonel_uniform": {
+            name: "Форма Полковника",
+            desc: "Офіцерський мундир з нагородами."
+        }
+    };
+
+    // --- NODES DATA (ЗМІНІТЬ ПОСИЛАННЯ ТУТ) ---
+    const Nodes = {
+        "start_hall": {
+            title: "Головний коридор",
+            sub: "Початок шляху.",
+            desc: "Ти стоїш у темному коридорі. Попереду видно розвилку, де блимає світло.",
+            // ЗАМІНІТЬ ЦЕ НА: imgSrc: "hall.jpg"
+            imgSrc: "img1.png",
+            nav: [
+                { label: "Піти вперед", to: "junction" }
+            ]
+        },
+        "junction": {
+            title: "Розвилка",
+            sub: "Камери спостереження всюди.",
+            desc: "Ліворуч — масивні двері до кабінету полковника. Прямо — прохід до казарм.",
+            // ЗАМІНІТЬ ЦЕ НА: imgSrc: "junction.jpg"
+            imgSrc: "img2.png",
+            nav: [
+                { label: "Назад в коридор", to: "start_hall" },
+                { label: "Прямо (Казарми)", to: "barracks" },
+                // Locked Node
+                { label: "Вліво (Кімната Полковника)", to: "colonel_room", locked: true, lockMsg: "🔐 ЗАМКНЕНО (LOGIN)" }
+            ]
+        },
+        "barracks": {
+            title: "Казарми",
+            sub: "Порожньо.",
+            desc: "Охорони немає, вони пішли на обід. Тут тихо, лише гуде вентиляція.",
+            // ЗАМІНІТЬ ЦЕ НА: imgSrc: "barracks.jpg"
+            imgSrc: "img3.png",
+            nav: [
+                { label: "Повернутися", to: "junction" }
+            ]
+        },
+        "colonel_room": {
+            title: "Кімната Полковника",
+            sub: "Штаб управління.",
+            desc: "Ти всередині. На спинці крісла висить парадна форма полковника. На столі комп'ютер.",
+            // ЗАМІНІТЬ ЦЕ НА: imgSrc: "colonel_room.jpg"
+            imgSrc: "img4.png",
+            nav: [
+                { label: "Вийти в коридор", to: "junction" }
+            ],
+            // Предмети в кімнаті
+            items: ["colonel_uniform"]
+        }
+    };
+
+    // --- CORE ENGINE ---
+
+    function render() {
+        const node = Nodes[State.currentNode];
+
+        // 1. Text Info
+        document.getElementById("nodeId").innerText = State.currentNode;
+        document.getElementById("sceneTitle").innerText = node.title;
+        document.getElementById("sceneSub").innerText = node.sub;
+
+        // 2. Image Injection (NEW)
+        const imgBox = document.getElementById("sceneImgBox");
+        // Створюємо тег картинки
+        imgBox.innerHTML = `<img src="${node.imgSrc}" alt="${node.title}" />`;
+
+        // 3. Description Logic
+        const descBox = document.getElementById("sceneDescText");
+        let dynamicDesc = node.desc;
+        // Якщо форму забрали, змінюємо опис
+        if (State.currentNode === "colonel_room" && State.inventory.has("colonel_uniform")) {
+            dynamicDesc = "Ти всередині кабінету. Крісло порожнє (форму ти вже забрав).";
+        }
+        descBox.innerText = dynamicDesc;
+
+        // 4. Room Interactions (Items)
+        const roomActions = document.getElementById("roomActions");
+        roomActions.innerHTML = "";
+
+        if (node.items) {
+            node.items.forEach(itemId => {
+                if (!State.inventory.has(itemId)) {
+                    const btn = document.createElement("button");
+                    btn.className = "item-btn";
+                    btn.innerText = `Взяти: ${Items[itemId].name}`;
+                    btn.onclick = () => takeItem(itemId);
+                    roomActions.appendChild(btn);
+                }
+            });
+        }
+
+        // 5. Navigation Buttons
+        const navContainer = document.getElementById("navButtons");
+        navContainer.innerHTML = "";
+
+        node.nav.forEach(path => {
+            const btn = document.createElement("button");
+
+            // Check locks
+            if (path.locked && !State.flags.doorHacked) {
+                btn.className = "locked";
+                btn.innerText = path.lockMsg;
+                btn.onclick = () => openTerminal();
+            } else {
+                btn.className = "primary";
+                btn.innerText = path.label;
+                btn.onclick = () => moveTo(path.to);
+            }
+            navContainer.appendChild(btn);
+        });
+
+        renderInventory();
+    }
+
+    function moveTo(nodeId) {
+        if (!Nodes[nodeId]) return;
+        State.currentNode = nodeId;
+        render();
+    }
+
+    // --- INVENTORY SYSTEM ---
+
+    function takeItem(itemId) {
+        State.inventory.add(itemId);
+        log(`Отримано предмет: ${Items[itemId].name}`);
+        render(); // Update scene
+    }
+
+    function toggleEquip(itemId) {
+        if (State.equipped === itemId) {
+            State.equipped = null;
+            log(`Знято: ${Items[itemId].name}`);
+        } else {
+            State.equipped = itemId;
+            log(`Одягнено: ${Items[itemId].name}`);
+        }
+        renderInventory();
+    }
+
+    function renderInventory() {
+        const container = document.getElementById("inventoryContainer");
+        container.innerHTML = "";
+
+        if (State.inventory.size === 0) {
+            container.innerHTML = `<div style="font-size:13px; color:var(--muted); text-align:center; padding:10px;">(Порожньо)</div>`;
+            return;
+        }
+
+        State.inventory.forEach(itemId => {
+            const item = Items[itemId];
+            const isEquipped = State.equipped === itemId;
+
+            const div = document.createElement("div");
+            div.className = `inv-item ${isEquipped ? 'equipped' : ''}`;
+
+            div.innerHTML = `
+        <div>
+          <div class="inv-name">
+            ${item.name} <span class="equip-badge">E</span>
+          </div>
+          <div class="inv-status">${isEquipped ? 'Одягнено' : 'В інвентарі'}</div>
+        </div>
+      `;
+
+            const btn = document.createElement("button");
+            btn.style.padding = "6px 10px";
+            btn.style.fontSize = "12px";
+            btn.innerText = isEquipped ? "Зняти" : "Одягти";
+            btn.onclick = () => toggleEquip(itemId);
+
+            div.appendChild(btn);
+            container.appendChild(div);
+        });
+    }
+
+    // --- SQL LOGIC (2 FIELDS) ---
+
+    const overlay = document.getElementById("sqlOverlay");
+    const userIn = document.getElementById("hackUser");
+    const passIn = document.getElementById("hackPass");
+    const sqlPreview = document.getElementById("sqlPreview");
+    const statusArea = document.getElementById("hackStatus");
+
+    function openTerminal() {
+        overlay.classList.add("show");
+        userIn.value = "";
+        passIn.value = "";
+        userIn.focus();
+        updateSQLPreview();
+        log("SYSTEM: Запит авторизації. Введіть логін/пароль.");
+    }
+
+    function closeTerminal() {
+        overlay.classList.remove("show");
+    }
+
+    function updateSQLPreview() {
+        const u = userIn.value;
+        const p = passIn.value;
+
+        let html = "";
+
+        // Check for comment injection
+        if (u.includes("--")) {
+            const parts = u.split("--");
+            html = `SELECT * FROM users WHERE u='<span class="hl-val">${escapeHtml(parts[0])}</span><span class="comment">--${escapeHtml(parts[1])}' AND p='${escapeHtml(p)}'</span>`;
+        } else {
+            html = `SELECT * FROM users WHERE u='<span class="hl-val">${escapeHtml(u)}</span>' AND p='<span class="hl-val">${escapeHtml(p)}</span>'`;
+        }
+
+        sqlPreview.innerHTML = html;
+    }
+
+    userIn.addEventListener("input", updateSQLPreview);
+    passIn.addEventListener("input", updateSQLPreview);
+
+    function executeHack() {
+        const u = userIn.value;
+        const p = passIn.value;
+
+        let success = false;
+        let msg = "";
+
+        // 1. Bypass via Comment (admin' --)
+        if (u.includes("'") && u.includes("--") && u.trim().startsWith("admin")) {
+            success = true;
+            msg = "SQLi: Comment Bypass Successful!";
+        }
+
+        // 2. Bypass via Tautology (OR 1=1)
+        else if (u === "admin" && (p.includes("' OR '1'='1") || p.includes("' OR 1=1"))) {
+            success = true;
+            msg = "SQLi: Password Tautology Successful!";
+        }
+
+        // 3. Realistic "Correct" credentials
+        else if (u === "admin" && p === "123456") {
+            success = true;
+            msg = "Login: Password Correct.";
+        }
+
+        if (success) {
+            statusArea.innerText = "ACCESS GRANTED. " + msg;
+            statusArea.className = "status-area success";
+            log("SYSTEM: " + msg);
+            setTimeout(() => {
+                State.flags.doorHacked = true;
+                closeTerminal();
+                moveTo("colonel_room");
+            }, 1000);
+        } else {
+            statusArea.innerText = "ACCESS DENIED. Invalid Credentials.";
+            statusArea.className = "status-area error";
+            document.querySelector(".modal").animate([
+                { transform: 'translateX(0)' }, { transform: 'translateX(5px)' },
+                { transform: 'translateX(-5px)' }, { transform: 'translateX(0)' }
+            ], { duration: 200 });
+        }
+    }
+
+    function escapeHtml(text) {
+        return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function log(msg) {
+        const time = new Date().toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit'});
+        const logEl = document.getElementById("gameLog");
+        logEl.innerText = `[${time}] ${msg}\n` + logEl.innerText;
+    }
+
+    function resetGame() {
+        State.currentNode = "start_hall";
+        State.flags.doorHacked = false;
+        State.inventory.clear();
+        State.equipped = null;
+        log("--- RESTART ---");
+        render();
+    }
+
+    // Init
+    render();
+
+</script>
+</body>
+</html>
