@@ -1,6 +1,7 @@
 from castle_sec_game.action import Action
 from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionArchetype, SolveTaskActionArchetype, \
     PickUpItemActionArchetype
+from castle_sec_game.file_reader import FileReader
 from castle_sec_game.game import Game
 from castle_sec_game.inventory_item import InventoryItem
 from castle_sec_game.map_node import MapNode
@@ -89,6 +90,7 @@ def display_node(game: Game):
         print(f"{l_row}{' ' * (g_width - clean_len(l_row))}{gap}{r_row}")
 
 def main():
+    '''
     node_a = MapNode(name="A", text="Node A", actions=[ReturnActionArchetype(), PickUpItemActionArchetype(item=InventoryItem("Dog Shit"))])
     node_b = MapNode(name="B", text="Node B", actions=[ReturnActionArchetype(), SolveTaskActionArchetype()])
     root_node = MapNode(name="Root", text="You see something!", actions=[
@@ -96,6 +98,9 @@ def main():
         MoveActionArchetype(node_a),
         MoveActionArchetype(node_b)
     ])
+    '''
+    reader = FileReader("test_map.json")
+    root_node = reader.read_file()
 
     game = Game(root_node)
     while True:

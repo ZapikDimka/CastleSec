@@ -1,6 +1,7 @@
 from castle_sec_game.action_archetype import ActionArchetype
 
 
+# TODO: Add states
 class MapNode:
     _name: str
     _text: str

@@ -1,0 +1,43 @@
+{
+  "items": {
+
+  },
+  "root": "NODE_root",
+  "nodes": {
+    "NODE_root": {
+      "name": "Root Node",
+      "text": "You see a root.",
+      "actions": [
+        {
+          "type": "return"
+        },
+        {
+          "type": "move",
+          "to": "NODE_a"
+        },
+        {
+          "type": "move",
+          "to": "NODE_b"
+        }
+      ]
+    },
+    "NODE_a": {
+      "name": "A Node",
+      "text": "Hello, Leatherman",
+      "actions": [
+        {
+          "type": "return"
+        }
+      ]
+    },
+    "NODE_b": {
+      "name": "B Node",
+      "text": "You encounter node B",
+      "actions": [
+        {
+          "type": "return"
+        }
+      ]
+    }
+  }
+}

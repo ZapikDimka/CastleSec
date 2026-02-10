@@ -7,7 +7,9 @@ authors = [
     { name = "Ruslan Omelchuk", email = "romelchuk12@gmail.com" }
 ]
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "pydantic>=2.12.5",
+]
 
 [project.scripts]
 game = "castle_sec_game.main:main"
