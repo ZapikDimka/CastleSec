@@ -1,0 +1,17 @@
+[project]
+name = "castle-sec-game"
+version = "0.1.0"
+description = "CastleSec game"
+readme = "README.md"
+authors = [
+    { name = "Ruslan Omelchuk", email = "romelchuk12@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = []
+
+[project.scripts]
+game = "castle_sec_game.main:main"
+
+[build-system]
+requires = ["uv_build>=0.10.1,<0.11.0"]
+build-backend = "uv_build"
