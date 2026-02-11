@@ -52,6 +52,17 @@
         {
           "type": "pickup",
           "item": "ITEM_dog_shit"
+        },
+        {
+          "type": "if",
+          "condition": {
+            "type": "has_item",
+            "item": "ITEM_dog_shit"
+          },
+          "action": {
+            "type": "move",
+            "to": "NODE_a"
+          }
         }
       ]
     }

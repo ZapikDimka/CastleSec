@@ -2,8 +2,9 @@ from typing import List
 
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.action_archetype_dto import ActionArchetypeDto, ReturnActionArchetypeDto, MoveActionArchetypeDto, \
-    PickUpItemActionArchetypeDto
-from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype, PickUpItemActionArchetype
+    PickUpItemActionArchetypeDto, ConditionalActionArchetypeDto, ConditionDto, HasItemConditionDto
+from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype, PickUpItemActionArchetype, \
+    ConditionalActionArchetype, Condition, HasItemCondition
 from castle_sec_game.inventory_item import InventoryItem
 from castle_sec_game.item_dto import ItemDto
 from castle_sec_game.map_dto import MapDto
@@ -62,8 +63,17 @@ class FileReader:
                 return MoveActionArchetype(self._find_map_node(action.to))
             case PickUpItemActionArchetypeDto():
                 return PickUpItemActionArchetype(self._find_inventory_item(action.item))
+            case ConditionalActionArchetypeDto():
+                return ConditionalActionArchetype(self._build_condition(action.condition), self._build_action(action.action))
             case _:
                 raise NotImplementedError(f"Unknown action {action}")
+
+    def _build_condition(self, condition: ConditionDto) -> Condition:
+        match condition:
+            case HasItemConditionDto():
+                return HasItemCondition(self._find_inventory_item(condition.item))
+            case _:
+                raise NotImplementedError(f"Unknown condition {condition}")
 
     def _find_map_node(self, id: str) -> MapNode | None:
         map_node = self._map_nodes.get(id, None)

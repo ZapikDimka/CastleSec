@@ -1,6 +1,8 @@
+from castle_sec_game import inventory
 from castle_sec_game.action import Action
+from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionArchetype, SolveTaskActionArchetype, \
-    PickUpItemActionArchetype
+    PickUpItemActionArchetype, ConditionalActionArchetype, Condition, HasItemCondition
 from castle_sec_game.actions import MoveAction, SolveTaskAction, PickUpItemAction
 from castle_sec_game.inventory import Inventory
 from castle_sec_game.map_node import MapNode
@@ -62,25 +64,40 @@ class Game:
             pass
 
         src = self.current_node.actions
-
         for action in src:
-            match action:
-                case MoveActionArchetype():
-                    self._actions.append(MoveAction(action, action.map_node))
-                case ReturnActionArchetype():
-                    if isinstance(action, ReturnActionArchetype):
-                        if self._prev_node is None:
-                            continue
-
-                    self._actions.append(MoveAction(action, self._prev_node, text=f"Return to '{self._prev_node.name}'"))
-                case SolveTaskActionArchetype():
-                    self._actions.append(SolveTaskAction(action))
-                case PickUpItemActionArchetype():
-                    self._actions.append(PickUpItemAction(action, action.item))
-                case _:
-                    raise NotImplementedError("Unhandled action archetype")
+            res = self._build_action(action)
+            self._actions.extend(res if isinstance(res, list) else [res])
 
         return self._actions
+
+    def _build_action(self, action: ActionArchetype) -> list[Action] | Action:
+        match action:
+            case MoveActionArchetype():
+                return [MoveAction(action, action.map_node)]
+            case ReturnActionArchetype():
+                if isinstance(action, ReturnActionArchetype):
+                    if self._prev_node is None:
+                        return []
+
+                return MoveAction(action, self._prev_node, text=f"Return to '{self._prev_node.name}'")
+            case SolveTaskActionArchetype():
+                return SolveTaskAction(action)
+            case PickUpItemActionArchetype():
+                return PickUpItemAction(action, action.item)
+            case ConditionalActionArchetype():
+                if self._evaluate_condition(action.condition):
+                    return self._build_action(action.action)
+
+                return []
+            case _:
+                raise NotImplementedError(f"Unhandled action archetype: {type(action)}")
+
+    def _evaluate_condition(self, condition: Condition) -> bool:
+        match condition:
+            case HasItemCondition():
+                return condition.item in self._inventory
+            case _:
+                return False
 
     def _move(self, node: MapNode):
         self._prev_node = self._current_node
