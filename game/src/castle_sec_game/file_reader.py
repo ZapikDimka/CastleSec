@@ -1,8 +1,11 @@
 from typing import List
 
 from castle_sec_game.action_archetype import ActionArchetype
-from castle_sec_game.action_archetype_dto import ActionArchetypeDto, ReturnActionArchetypeDto, MoveActionArchetypeDto
-from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype
+from castle_sec_game.action_archetype_dto import ActionArchetypeDto, ReturnActionArchetypeDto, MoveActionArchetypeDto, \
+    PickUpItemActionArchetypeDto
+from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype, PickUpItemActionArchetype
+from castle_sec_game.inventory_item import InventoryItem
+from castle_sec_game.item_dto import ItemDto
 from castle_sec_game.map_dto import MapDto
 from castle_sec_game.map_node import MapNode
 from castle_sec_game.map_node_dto import MapNodeDto
@@ -11,6 +14,7 @@ from castle_sec_game.map_node_dto import MapNodeDto
 class FileReader:
     _filename: str
     _map_nodes: dict[str, MapNode] = {}
+    _items: dict[str, InventoryItem] = {}
 
     def __init__(self, filename: str):
         self._filename = filename
@@ -23,6 +27,8 @@ class FileReader:
     def _build_map(self, dto: MapDto) -> MapNode:
         # TODO: Check if empty
 
+        self._build_items(dto)
+
         for id, node_dto in dto.nodes.items():
             map_node = self._build_map_node(node_dto)
             self._map_nodes[id] = map_node # TODO: Verify not duplicated
@@ -32,6 +38,14 @@ class FileReader:
             self._map_nodes[id]._actions = actions # TODO
 
         return self._map_nodes[dto.root]
+
+    def _build_items(self, dto: MapDto):
+        self._items = {}
+        for id, item in dto.items.items():
+            self._items[id] = self._build_item(item) # TODO: Verify not duplicated
+
+    def _build_item(self, dto: ItemDto) -> InventoryItem:
+        return InventoryItem(name=dto.name)
 
     def _build_map_node(self, dto: MapNodeDto) -> MapNode:
         return MapNode(name=dto.name, text=dto.text, actions=[]) #self._build_actions(dto.actions))
@@ -46,10 +60,18 @@ class FileReader:
                 return ReturnActionArchetype()
             case MoveActionArchetypeDto():
                 return MoveActionArchetype(self._find_map_node(action.to))
+            case PickUpItemActionArchetypeDto():
+                return PickUpItemActionArchetype(self._find_inventory_item(action.item))
             case _:
                 raise NotImplementedError(f"Unknown action {action}")
 
-    def _find_map_node(self, id: str):
+    def _find_map_node(self, id: str) -> MapNode | None:
         map_node = self._map_nodes.get(id, None)
         # TODO: Verify not None
         return map_node
+
+
+    def _find_inventory_item(self, id: str) -> InventoryItem | None:
+        item = self._items.get(id, None)
+        # TODO: Verify not None
+        return item

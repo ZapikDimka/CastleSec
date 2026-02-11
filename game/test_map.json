@@ -1,6 +1,14 @@
 {
   "items": {
-
+    "ITEM_dog_shit": {
+      "name": "Dog Shit"
+    },
+    "ITEM_key": {
+      "name": "Key"
+    },
+    "ITEM_golden_loaf": {
+      "name": "Golden Loaf"
+    }
   },
   "root": "NODE_root",
   "nodes": {
@@ -27,6 +35,10 @@
       "actions": [
         {
           "type": "return"
+        },
+        {
+          "type": "pickup",
+          "item": "ITEM_key"
         }
       ]
     },
@@ -36,6 +48,10 @@
       "actions": [
         {
           "type": "return"
+        },
+        {
+          "type": "pickup",
+          "item": "ITEM_dog_shit"
         }
       ]
     }

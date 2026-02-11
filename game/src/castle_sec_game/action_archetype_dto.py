@@ -10,7 +10,11 @@ class MoveActionArchetypeDto(BaseModel):
     type: Literal["move"]
     to: str
 
+class PickUpItemActionArchetypeDto(BaseModel):
+    type: Literal["pickup"]
+    item: str
+
 ActionArchetypeDto = Annotated[
-    Union[ReturnActionArchetypeDto, MoveActionArchetypeDto],
+    Union[ReturnActionArchetypeDto, MoveActionArchetypeDto, PickUpItemActionArchetypeDto],
     Field(discriminator="type")
 ]
