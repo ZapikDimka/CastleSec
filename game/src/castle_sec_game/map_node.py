@@ -12,6 +12,9 @@ class MapNode:
         self._text = text
         self._actions = actions
 
+    def __str__(self):
+        return f"MapNode('{self._name}')"
+
     @property
     def name(self) -> str:
         return self._name

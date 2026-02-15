@@ -20,7 +20,14 @@ class MoveActionArchetype(ActionArchetype):
 
 
 class SolveTaskActionArchetype(ActionArchetype):
-    pass
+    _task_name: str
+
+    def __init__(self, task_name: str):
+        self._task_name = task_name
+
+    @property
+    def task_name(self) -> str:
+        return self._task_name
 
 
 class PickUpItemActionArchetype(ActionArchetype):

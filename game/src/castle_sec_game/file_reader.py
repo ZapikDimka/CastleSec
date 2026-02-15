@@ -1,10 +1,12 @@
+import logging
 from typing import List
 
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.action_archetype_dto import ActionArchetypeDto, ReturnActionArchetypeDto, MoveActionArchetypeDto, \
-    PickUpItemActionArchetypeDto, ConditionalActionArchetypeDto, ConditionDto, HasItemConditionDto
+    PickUpItemActionArchetypeDto, ConditionalActionArchetypeDto, ConditionDto, HasItemConditionDto, \
+    SolveTaskActionArchetypeDto
 from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype, PickUpItemActionArchetype, \
-    ConditionalActionArchetype, Condition, HasItemCondition
+    ConditionalActionArchetype, Condition, HasItemCondition, SolveTaskActionArchetype
 from castle_sec_game.inventory_item import InventoryItem
 from castle_sec_game.item_dto import ItemDto
 from castle_sec_game.map_dto import MapDto
@@ -20,7 +22,11 @@ class FileReader:
     def __init__(self, filename: str):
         self._filename = filename
 
+    def __str__(self):
+        return f"FileReader({self._filename})"
+
     def read_file(self) -> MapNode:
+        logging.info(f"[{self}] Reading file")
         with open(self._filename, "r") as file:
             map_dto = MapDto.model_validate_json(file.read())
             return self._build_map(map_dto)
@@ -28,16 +34,20 @@ class FileReader:
     def _build_map(self, dto: MapDto) -> MapNode:
         # TODO: Check if empty
 
+        logging.debug(f"[{self}] Loading items")
         self._build_items(dto)
 
+        logging.debug(f"[{self}] Loading map nodes")
         for id, node_dto in dto.nodes.items():
             map_node = self._build_map_node(node_dto)
             self._map_nodes[id] = map_node # TODO: Verify not duplicated
 
+        logging.debug(f"[{self}] Loading map nodes' actions")
         for id, node in dto.nodes.items():
             actions = self._build_actions(node.actions)
             self._map_nodes[id]._actions = actions # TODO
 
+        logging.debug(f"[{self}] Returning map root node")
         return self._map_nodes[dto.root]
 
     def _build_items(self, dto: MapDto):
@@ -63,6 +73,8 @@ class FileReader:
                 return MoveActionArchetype(self._find_map_node(action.to))
             case PickUpItemActionArchetypeDto():
                 return PickUpItemActionArchetype(self._find_inventory_item(action.item))
+            case SolveTaskActionArchetypeDto():
+                return SolveTaskActionArchetype(action.name) # TODO: Validate task exists
             case ConditionalActionArchetypeDto():
                 return ConditionalActionArchetype(self._build_condition(action.condition), self._build_action(action.action))
             case _:

@@ -1,21 +1,21 @@
+import asyncio
+import logging
+
 from castle_sec_game.action import Action
-from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionArchetype, SolveTaskActionArchetype, \
-    PickUpItemActionArchetype
 from castle_sec_game.file_reader import FileReader
 from castle_sec_game.game import Game
-from castle_sec_game.inventory_item import InventoryItem
-from castle_sec_game.map_node import MapNode
 
 
-def select_action(game: Game) -> Action | None:
+async def ainput(prompt: str = "") -> str:
+    return await asyncio.to_thread(input, prompt)
+
+async def select_action(game: Game) -> Action | None:
     actions = game.actions
 
+    index_str = await ainput()
     if game.is_solving_task:
-        task_res = input("Input Y for success: ")
-        game.dev_solve_task(task_res == "Y")
         return None
 
-    index_str = input()
     try:
         index = int(index_str)
     except ValueError:
@@ -89,7 +89,7 @@ def display_node(game: Game):
         gap = "  "
         print(f"{l_row}{' ' * (g_width - clean_len(l_row))}{gap}{r_row}")
 
-def main():
+async def run_game():
     '''
     node_a = MapNode(name="A", text="Node A", actions=[ReturnActionArchetype(), PickUpItemActionArchetype(item=InventoryItem("Dog Shit"))])
     node_b = MapNode(name="B", text="Node B", actions=[ReturnActionArchetype(), SolveTaskActionArchetype()])
@@ -105,12 +105,17 @@ def main():
     game = Game(root_node)
     while True:
         display_node(game)
-        action = select_action(game)
-        if action is None:
-            continue
-
+        action = await select_action(game)
         game.act(action)
+        await asyncio.sleep(0)
 
+def main():
+    logging.basicConfig(level=logging.DEBUG)
+
+    try:
+        asyncio.run(run_game())
+    except KeyboardInterrupt:
+        pass
 
 if __name__ == "__main__":
-    main()
+   main()

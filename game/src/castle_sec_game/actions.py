@@ -1,9 +1,12 @@
+from dataclasses import dataclass
+
 from castle_sec_game.action import Action
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.inventory_item import InventoryItem
 from castle_sec_game.map_node import MapNode
 
 
+@dataclass
 class MoveAction(Action):
     _map_node: MapNode
 
@@ -16,11 +19,20 @@ class MoveAction(Action):
         return self._map_node
 
 
+@dataclass
 class SolveTaskAction(Action):
-    def __init__(self, archetype: ActionArchetype):
+    _task_name: str
+
+    def __init__(self, archetype: ActionArchetype, task_name: str):
         super().__init__(archetype, "Solve a task")
+        self._task_name = task_name
+
+    @property
+    def task_name(self):
+        return self._task_name
 
 
+@dataclass
 class PickUpItemAction(Action):
     def __init__(self, archetype: ActionArchetype, item: InventoryItem, text: str | None = None):
         super().__init__(archetype, text or f"Pick up '{item.name}'")

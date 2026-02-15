@@ -14,6 +14,10 @@ class PickUpItemActionArchetypeDto(BaseModel):
     type: Literal["pickup"]
     item: str
 
+class SolveTaskActionArchetypeDto(BaseModel):
+    type: Literal["solve_task"]
+    name: str
+
 class HasItemConditionDto(BaseModel):
     type: Literal["has_item"]
     item: str
@@ -29,6 +33,6 @@ class ConditionalActionArchetypeDto(BaseModel):
     action: "ActionArchetypeDto"
 
 ActionArchetypeDto = Annotated[
-    Union[ReturnActionArchetypeDto, MoveActionArchetypeDto, PickUpItemActionArchetypeDto, ConditionalActionArchetypeDto],
+    Union[ReturnActionArchetypeDto, MoveActionArchetypeDto, PickUpItemActionArchetypeDto, SolveTaskActionArchetypeDto, ConditionalActionArchetypeDto],
     Field(discriminator="type")
 ]

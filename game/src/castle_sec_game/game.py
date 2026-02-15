@@ -1,4 +1,5 @@
-from castle_sec_game import inventory
+import logging
+
 from castle_sec_game.action import Action
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionArchetype, SolveTaskActionArchetype, \
@@ -6,13 +7,14 @@ from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionA
 from castle_sec_game.actions import MoveAction, SolveTaskAction, PickUpItemAction
 from castle_sec_game.inventory import Inventory
 from castle_sec_game.map_node import MapNode
+from castle_sec_game.task import Task
 
 
 class Game:
     _prev_node: MapNode | None = None
     _current_node: MapNode
     _actions: list[Action]
-    _is_solving_task: bool = False
+    _task: Task | None = None
     _inventory: Inventory
 
     def __init__(self, root_node: MapNode):
@@ -31,17 +33,18 @@ class Game:
 
     @property
     def is_solving_task(self) -> bool:
-        return self._is_solving_task
+        return self._task is not None
 
     @property
     def inventory(self) -> Inventory:
         return self._inventory
 
-    def dev_solve_task(self, is_success: bool):
-        self._is_solving_task = False
-        # TODO
+    def act(self, action: Action | None):
+        logging.debug(f"Applying game action: {action}")
+        if action is None:
+            self._step()
+            return
 
-    def act(self, action: Action):
         if action not in self.actions:
             raise ValueError("Invalid action")
 
@@ -50,7 +53,12 @@ class Game:
                 self._move(action.map_node)
                 self._step()
             case SolveTaskAction():
-                self._is_solving_task = True
+                if self._task is not None:
+                    # TODO
+                    return
+
+                self._task = Task(action.task_name)
+                self._task.run()
             case PickUpItemAction():
                 self._inventory.add(action.item)
                 self._current_node.actions.remove(action.archetype)
@@ -60,8 +68,13 @@ class Game:
 
     def _build_actions(self):
         self._actions = []
-        if self._is_solving_task:
-            pass
+        if self._task is not None:
+            res = self._task.get_result()
+            if res is None:
+                return self._actions
+
+            # TODO
+            self._task = None
 
         src = self.current_node.actions
         for action in src:
@@ -81,7 +94,7 @@ class Game:
 
                 return MoveAction(action, self._prev_node, text=f"Return to '{self._prev_node.name}'")
             case SolveTaskActionArchetype():
-                return SolveTaskAction(action)
+                return SolveTaskAction(action, action.task_name)
             case PickUpItemActionArchetype():
                 return PickUpItemAction(action, action.item)
             case ConditionalActionArchetype():
@@ -100,9 +113,10 @@ class Game:
                 return False
 
     def _move(self, node: MapNode):
+        logging.debug(f"Moving on map: {self._prev_node} -> {node}")
         self._prev_node = self._current_node
         self._current_node = node
-        self._step()
 
     def _step(self):
+        logging.debug("Game tick")
         self._build_actions()

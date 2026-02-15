@@ -26,6 +26,10 @@
         {
           "type": "move",
           "to": "NODE_b"
+        },
+        {
+          "type": "solve_task",
+          "name": "test"
         }
       ]
     },
