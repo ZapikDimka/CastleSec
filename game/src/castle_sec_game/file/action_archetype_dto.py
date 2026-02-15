@@ -2,6 +2,8 @@ from typing import Union, Literal, Annotated, TypeAlias
 
 from pydantic import BaseModel, Field
 
+from .condition_dto import ConditionDto
+
 
 class ReturnActionArchetypeDto(BaseModel):
     type: Literal["return"]
@@ -17,15 +19,6 @@ class PickUpItemActionArchetypeDto(BaseModel):
 class SolveTaskActionArchetypeDto(BaseModel):
     type: Literal["solve_task"]
     name: str
-
-class HasItemConditionDto(BaseModel):
-    type: Literal["has_item"]
-    item: str
-
-ConditionDto: TypeAlias = Annotated[
-    Union[HasItemConditionDto],
-    Field(discriminator="type")
-]
 
 class ConditionalActionArchetypeDto(BaseModel):
     type: Literal["if"]

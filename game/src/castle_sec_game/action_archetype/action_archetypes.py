@@ -1,5 +1,4 @@
-import abc
-
+from .condition import Condition
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.inventory import InventoryItem
 from castle_sec_game.map import MapNode
@@ -31,20 +30,6 @@ class SolveTaskActionArchetype(ActionArchetype):
 
 
 class PickUpItemActionArchetype(ActionArchetype):
-    _item: InventoryItem
-
-    def __init__(self, item: InventoryItem):
-        self._item = item
-
-    @property
-    def item(self) -> InventoryItem:
-        return self._item
-
-
-class Condition(abc.ABC):
-    pass
-
-class HasItemCondition(Condition):
     _item: InventoryItem
 
     def __init__(self, item: InventoryItem):
