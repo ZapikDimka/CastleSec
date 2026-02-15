@@ -3,6 +3,7 @@ from typing import List
 
 from .item_dto import ItemDto
 from .map_dto import MapDto
+from .condition_dto import *
 from .map_node_dto import MapNodeDto
 from .action_archetype_dto import *
 from castle_sec_game.action_archetype import *
