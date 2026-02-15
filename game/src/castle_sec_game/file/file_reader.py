@@ -29,15 +29,17 @@ class FileReader:
             return self._build_map(map_dto)
 
     def _build_map(self, dto: MapDto) -> MapNode:
-        # TODO: Check if empty
-
         logging.debug(f"[{self}] Loading items")
         self._build_items(dto)
 
         logging.debug(f"[{self}] Loading map nodes")
         for id, node_dto in dto.nodes.items():
+            if id in self._map_nodes:
+                logging.error(f"[{self}] Duplicate MapNode id: '{id}'")
+                raise ValueError(f"Duplicate MapNode id: '{id}'")
+
             map_node = self._build_map_node(node_dto)
-            self._map_nodes[id] = map_node # TODO: Verify not duplicated
+            self._map_nodes[id] = map_node
 
         logging.debug(f"[{self}] Loading map nodes' actions")
         for id, node in dto.nodes.items():
@@ -50,13 +52,17 @@ class FileReader:
     def _build_items(self, dto: MapDto):
         self._items = {}
         for id, item in dto.items.items():
-            self._items[id] = self._build_item(item) # TODO: Verify not duplicated
+            if id in self._items:
+                logging.error(f"[{self}] Duplicate InventoryItem id: '{id}'")
+                raise ValueError(f"Duplicate InventoryItem id: '{id}'")
+
+            self._items[id] = self._build_item(item)
 
     def _build_item(self, dto: ItemDto) -> InventoryItem:
         return InventoryItem(name=dto.name)
 
     def _build_map_node(self, dto: MapNodeDto) -> MapNode:
-        return MapNode(name=dto.name, text=dto.text, actions=[]) #self._build_actions(dto.actions))
+        return MapNode(name=dto.name, text=dto.text, actions=[])
 
     def _build_actions(self, actions: List[ActionArchetypeDto]) -> list[ActionArchetype]:
         return [self._build_action(action) for action in actions]
@@ -75,22 +81,30 @@ class FileReader:
             case ConditionalActionArchetypeDto():
                 return ConditionalActionArchetype(self._build_condition(action.condition), self._build_action(action.action))
             case _:
-                raise NotImplementedError(f"Unknown action {action}")
+                logging.error(f"[{self}] Unhandled action: {action}")
+                raise NotImplementedError(f"Unhandled action {action}")
 
     def _build_condition(self, condition: ConditionDto) -> Condition:
         match condition:
             case HasItemConditionDto():
                 return HasItemCondition(self._find_inventory_item(condition.item))
             case _:
-                raise NotImplementedError(f"Unknown condition {condition}")
+                logging.error(f"[{self}] Unknown condition: {condition}")
+                raise NotImplementedError(f"Unhandled condition: {condition}")
 
     def _find_map_node(self, id: str) -> MapNode | None:
         map_node = self._map_nodes.get(id, None)
-        # TODO: Verify not None
+        if map_node is None:
+            logging.error(f"[{self}] Map node '{id}' not found")
+            raise ValueError(f"MapNode not found: id='{id}'")
+
         return map_node
 
 
     def _find_inventory_item(self, id: str) -> InventoryItem | None:
         item = self._items.get(id, None)
-        # TODO: Verify not None
+        if item is None:
+            logging.error(f"[{self}] Inventory item '{id}' not found")
+            raise ValueError(f"Inventory item not found: id='{id}'")
+
         return item
