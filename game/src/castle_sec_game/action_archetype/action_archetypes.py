@@ -1,12 +1,17 @@
+from dataclasses import dataclass
+
 from .condition import Condition
 from castle_sec_game.action_archetype import ActionArchetype
 from castle_sec_game.inventory import InventoryItem
 from castle_sec_game.map import MapNode
 
 
+@dataclass
 class ReturnActionArchetype(ActionArchetype):
     pass
 
+
+@dataclass
 class MoveActionArchetype(ActionArchetype):
     _map_node: MapNode
 
@@ -18,6 +23,7 @@ class MoveActionArchetype(ActionArchetype):
         return self._map_node
 
 
+@dataclass
 class SolveTaskActionArchetype(ActionArchetype):
     _task_name: str
 
@@ -29,6 +35,7 @@ class SolveTaskActionArchetype(ActionArchetype):
         return self._task_name
 
 
+@dataclass
 class PickUpItemActionArchetype(ActionArchetype):
     _item: InventoryItem
 
@@ -40,6 +47,7 @@ class PickUpItemActionArchetype(ActionArchetype):
         return self._item
 
 
+@dataclass
 class ConditionalActionArchetype(ActionArchetype):
     _condition: Condition
     _action: ActionArchetype

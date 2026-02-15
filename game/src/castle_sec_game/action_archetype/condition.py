@@ -1,4 +1,5 @@
 import abc
+from dataclasses import dataclass
 
 from castle_sec_game.inventory import InventoryItem
 
@@ -6,6 +7,7 @@ from castle_sec_game.inventory import InventoryItem
 class Condition(abc.ABC):
     pass
 
+@dataclass
 class HasItemCondition(Condition):
     _item: InventoryItem
 

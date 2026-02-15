@@ -34,6 +34,12 @@ class SolveTaskAction(Action):
 
 @dataclass
 class PickUpItemAction(Action):
+    _item: InventoryItem
+
     def __init__(self, archetype: ActionArchetype, item: InventoryItem, text: str | None = None):
         super().__init__(archetype, text or f"Pick up '{item.name}'")
-        self.item = item
+        self._item = item
+
+    @property
+    def item(self) -> InventoryItem:
+        return self._item
