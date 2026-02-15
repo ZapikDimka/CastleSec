@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from castle_sec_game.item_dto import ItemDto
-from castle_sec_game.map_node_dto import MapNodeDto
+from .item_dto import ItemDto
+from .map_node_dto import MapNodeDto
 
 
 class MapDto(BaseModel):

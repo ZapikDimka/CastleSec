@@ -1,13 +1,10 @@
 import logging
 
-from castle_sec_game.action import Action
-from castle_sec_game.action_archetype import ActionArchetype
-from castle_sec_game.action_archetypes import ReturnActionArchetype, MoveActionArchetype, SolveTaskActionArchetype, \
-    PickUpItemActionArchetype, ConditionalActionArchetype, Condition, HasItemCondition
-from castle_sec_game.actions import MoveAction, SolveTaskAction, PickUpItemAction
+from castle_sec_game.action import *
+from castle_sec_game.action_archetype import *
 from castle_sec_game.inventory import Inventory
-from castle_sec_game.map_node import MapNode
-from castle_sec_game.task import Task
+from castle_sec_game.map.map_node import MapNode
+from castle_sec_game.task.task import Task
 
 
 class Game:

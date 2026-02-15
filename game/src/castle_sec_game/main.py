@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from castle_sec_game.action import Action
-from castle_sec_game.file_reader import FileReader
+from castle_sec_game.file import FileReader
 from castle_sec_game.game import Game
 
 

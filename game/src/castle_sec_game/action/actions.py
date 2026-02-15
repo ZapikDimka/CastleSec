@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from castle_sec_game.action import Action
+from .action import Action
 from castle_sec_game.action_archetype import ActionArchetype
-from castle_sec_game.inventory_item import InventoryItem
-from castle_sec_game.map_node import MapNode
+from castle_sec_game.inventory.inventory_item import InventoryItem
+from castle_sec_game.map.map_node import MapNode
 
 
 @dataclass

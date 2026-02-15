@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import traceback
 import uuid
 from enum import Enum
 

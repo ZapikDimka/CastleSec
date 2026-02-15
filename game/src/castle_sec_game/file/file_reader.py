@@ -1,17 +1,13 @@
 import logging
 from typing import List
 
-from castle_sec_game.action_archetype import ActionArchetype
-from castle_sec_game.action_archetype_dto import ActionArchetypeDto, ReturnActionArchetypeDto, MoveActionArchetypeDto, \
-    PickUpItemActionArchetypeDto, ConditionalActionArchetypeDto, ConditionDto, HasItemConditionDto, \
-    SolveTaskActionArchetypeDto
-from castle_sec_game.action_archetypes import MoveActionArchetype, ReturnActionArchetype, PickUpItemActionArchetype, \
-    ConditionalActionArchetype, Condition, HasItemCondition, SolveTaskActionArchetype
-from castle_sec_game.inventory_item import InventoryItem
-from castle_sec_game.item_dto import ItemDto
-from castle_sec_game.map_dto import MapDto
-from castle_sec_game.map_node import MapNode
-from castle_sec_game.map_node_dto import MapNodeDto
+from .item_dto import ItemDto
+from .map_dto import MapDto
+from .map_node_dto import MapNodeDto
+from .action_archetype_dto import *
+from castle_sec_game.action_archetype import *
+from castle_sec_game.map import MapNode
+from castle_sec_game.inventory import InventoryItem
 
 
 class FileReader:
