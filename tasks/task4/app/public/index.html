@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <title>Скляний Будинок — v0.9.1-beta</title>
+    <style>
+        body {
+            background-color: #f0f4f8;
+            color: #334e68;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            padding: 16px;
+        }
+        .card {
+            background: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 540px;
+            width: 100%;
+        }
+        .status {
+            display: inline-block;
+            background: #ffecb3;
+            color: #b36b00;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-bottom: 16px;
+        }
+        .meta {
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.85;
+        }
+        .divider {
+            height: 1px;
+            background: #e6edf5;
+            margin: 18px 0;
+        }
+        .form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        input {
+            padding: 12px 12px;
+            border-radius: 8px;
+            border: 1px solid #c9d6e3;
+            outline: none;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 14px;
+            border-radius: 8px;
+            border: none;
+            background: #2f6fed;
+            color: white;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        .msg {
+            margin-top: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            display: none;
+            text-align: left;
+        }
+        .ok { background: #e7f7ee; color: #1f6b3a; border: 1px solid #bfe8cf; }
+        .bad { background: #ffe9e9; color: #8a1f1f; border: 1px solid #ffc7c7; }
+        code { background: #eef2f7; padding: 2px 6px; border-radius: 6px; }
+        .miniBtn{
+            margin-left: 10px;
+            padding: 6px 10px;
+            border-radius: 8px;
+            border: 1px solid #c9d6e3;
+            background: #ffffff;
+            color: #334e68;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 12.5px;
+        }
+        .miniBtn:disabled{
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div class="status">DEV MODE: ENABLED</div>
+
+    <h1>🏗️ Панель Будівництва</h1>
+    <p>Система працює в режимі налагодження.</p>
+    <p>Доступ до інтерфейсу керування тимчасово обмежено для зовнішніх IP.</p>
+
+    <div class="meta">
+        Стан системи: <b id="sys">перевірка…</b> · Збірка: <b id="build">…</b>
+        <button id="statusBtn" type="button" class="miniBtn">Перевірити статус на сервері</button>
+    </div>
+
+
+    <div class="divider"></div>
+
+    <p>
+        Кажуть, вони записували секрети просто “на стінах” — у змінних середовища.
+        Твоє завдання: знайти <code>SECRET_KEY</code> і пройти перевірку нижче.
+    </p>
+
+    <div class="form">
+        <input id="keyInput" type="text" placeholder="Введи SECRET_KEY..." autocomplete="off" />
+        <button id="checkBtn">Перевірити</button>
+    </div>
+
+    <div id="msg" class="msg"></div>
+</div>
+
+<script>
+    const sysEl = document.getElementById("sys");
+    const buildEl = document.getElementById("build");
+    const statusBtn = document.getElementById("statusBtn");
+
+    const keyInput = document.getElementById("keyInput");
+    const checkBtn = document.getElementById("checkBtn");
+    const msg = document.getElementById("msg");
+
+    function showMessage(text, ok) {
+        msg.textContent = text;
+        msg.className = "msg " + (ok ? "ok" : "bad");
+        msg.style.display = "block";
+    }
+
+    let dots = 0;
+    let timer = null;
+    let controller = null;
+
+    function startCheckingUI() {
+        dots = 0;
+        sysEl.textContent = "перевірка";
+        sysEl.textContent = "перевірка";
+        buildEl.textContent = "…";
+
+        if (timer) clearInterval(timer);
+        timer = setInterval(() => {
+            dots = (dots + 1) % 4;
+            sysEl.textContent = "перевірка" + ".".repeat(dots);
+        }, 350);
+    }
+
+    function stopCheckingUI(ok, version) {
+        if (timer) clearInterval(timer);
+        timer = null;
+
+        if (ok) {
+            sysEl.textContent = "OK";
+            buildEl.textContent = version || "unknown";
+        } else {
+            sysEl.textContent = "offline";
+            buildEl.textContent = "unknown";
+        }
+    }
+
+    async function checkStatus({ delayMs = 1200 } = {}) {
+        // скасувати попередній запит, якщо був
+        if (controller) controller.abort();
+        controller = new AbortController();
+
+        statusBtn.disabled = true;
+        startCheckingUI();
+
+        // невелика затримка (щоб "було видно", що сторінка щось перевіряє)
+        if (delayMs > 0) {
+            await new Promise(r => setTimeout(r, delayMs));
+        }
+
+        try {
+            const r = await fetch("/info", {
+                cache: "no-store",
+                signal: controller.signal
+            });
+            if (!r.ok) throw new Error("bad status");
+            const data = await r.json();
+
+            stopCheckingUI(true, data?.version);
+        } catch (e) {
+            // якщо це abort — тихо і без "offline"
+            if (e && e.name === "AbortError") {
+                // залишимо UI як є, бо наступний запит вже стартував
+                return;
+            }
+            stopCheckingUI(false);
+        } finally {
+            statusBtn.disabled = false;
+        }
+    }
+
+    // Автоперевірка при завантаженні (варіант A)
+    console.warn("DEV MODE: diagnostics enabled");
+    checkStatus({ delayMs: 1200 });
+
+    // Ручна перевірка кнопкою — без довгої затримки
+    statusBtn.addEventListener("click", () => {
+        checkStatus({ delayMs: 200 });
+    });
+
+    // Перевірка ключа (серверна)
+    checkBtn.addEventListener("click", async () => {
+        const key = keyInput.value.trim();
+        if (!key) return showMessage("Введи ключ перед перевіркою.", false);
+
+        checkBtn.disabled = true;
+        msg.style.display = "none";
+
+        try {
+            const res = await fetch("/api/verify-key", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ key })
+            });
+
+            const data = await res.json().catch(() => ({}));
+
+            if (res.ok && data.ok) {
+                showMessage("✅ Ключ прийнято. Доступ підтверджено.", true);
+            } else {
+                showMessage("❌ Невірний ключ.", false);
+            }
+        } catch (e) {
+            showMessage("⚠️ Помилка запиту до сервера.", false);
+        } finally {
+            checkBtn.disabled = false;
+        }
+    });
+</script>
+
+</body>
+</html>
