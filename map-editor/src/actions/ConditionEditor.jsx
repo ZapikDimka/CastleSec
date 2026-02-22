@@ -61,6 +61,10 @@ function UnknownConditionEditor({ condition, onChange }) {
     const handleBlur = () => {
         try {
             const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed) || !parsed.type) {
+                setError('Invalid: JSON must be an object with a "type" field.');
+                return;
+            }
             setError(null);
             onChange(parsed);
         } catch (e) {

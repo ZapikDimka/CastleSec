@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MapProvider } from './state/MapContext';
 import { useMapState, useMapDispatch } from './state/MapContext';
 import Toolbar from './shared/Toolbar';
@@ -9,7 +9,20 @@ import ItemPanel from './panels/ItemPanel';
 function AppContent() {
   const state = useMapState();
   const dispatch = useMapDispatch();
-  const { selectedNodeId, selectedItemId } = state;
+  const { selectedNodeId, selectedItemId, isDirty } = state;
+
+  // Unsaved changes beforeunload safeguard
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = ''; // Required for Chrome/Edge
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isDirty]);
 
   // Track which tab the user explicitly picked
   const [activeTab, setActiveTab] = useState('nodes');

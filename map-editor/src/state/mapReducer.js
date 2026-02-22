@@ -247,7 +247,7 @@ export function mapReducer(state, action) {
         }
 
         case 'LOAD_MAP': {
-            const { items, root, nodes, nodePositions, _extraTopLevel } = action.payload;
+            const { items, root, nodes, nodePositions, _extraTopLevel } = action.payload.state;
             return {
                 ...state,
                 items: items || {},
@@ -260,6 +260,7 @@ export function mapReducer(state, action) {
                 isDirty: false,
                 nodeCounter: Object.keys(nodes).length,
                 itemCounter: Object.keys(items || {}).length,
+                filePath: action.payload.filename || 'map.json',
             };
         }
 
@@ -267,6 +268,7 @@ export function mapReducer(state, action) {
             return {
                 ...state,
                 isDirty: false,
+                filePath: action.payload?.filename || state.filePath,
             };
         }
 

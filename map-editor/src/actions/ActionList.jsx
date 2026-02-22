@@ -17,9 +17,11 @@ const TYPE_DEFAULTS = {
     pickup: { type: 'pickup', item: '' },
     solve_task: { type: 'solve_task', name: '' },
     if: { type: 'if', condition: { type: 'has_item', item: '' }, action: { type: 'return' } },
+    custom: { type: 'custom' },
 };
 
 function getActionSummary(action) {
+    if (action._unknown || action.type === 'custom') return `⚠️ Unknown: ${action.type}`;
     switch (action.type) {
         case 'return': return 'Return';
         case 'move': return `move → ${action.to || '?'}`;
@@ -30,11 +32,15 @@ function getActionSummary(action) {
     }
 }
 
-function getTypeBadge(type) {
+function getTypeBadge(type, action) {
+    if (action?._unknown || type === 'custom') {
+        return { label: '⚠️', color: 'var(--warning)', isUnknown: true };
+    }
     const meta = ACTION_TYPES.find(t => t.type === type);
     return {
         label: meta?.label?.charAt(0) || '?',
         color: meta?.color || 'var(--text-secondary)',
+        isUnknown: false
     };
 }
 
@@ -122,15 +128,20 @@ export default function ActionList({ nodeId, actions }) {
             )}
 
             {actions.map((action, i) => {
-                const badge = getTypeBadge(action.type);
+                const badge = getTypeBadge(action.type, action);
                 const isExpanded = expandedIndex === i;
                 const isDragging = dragIndex === i;
                 const isDragOver = dragOverIndex === i && dragIndex !== i;
 
+                let rowClass = 'action-row';
+                if (badge.isUnknown) rowClass += ' action-row--unknown';
+                if (isDragging) rowClass += ' action-row--dragging';
+                if (isDragOver) rowClass += ' action-row--drag-over';
+
                 return (
                     <div
                         key={i}
-                        className={`action-row ${isDragging ? 'action-row--dragging' : ''} ${isDragOver ? 'action-row--drag-over' : ''}`}
+                        className={rowClass}
                         draggable
                         onDragStart={(e) => handleDragStart(e, i)}
                         onDragOver={(e) => handleDragOver(e, i)}
@@ -197,6 +208,13 @@ export default function ActionList({ nodeId, actions }) {
                                 {label}
                             </button>
                         ))}
+                        <div className="action-list__add-divider" style={{ height: 1, backgroundColor: 'var(--border)', margin: '4px 0' }} />
+                        <button
+                            className="action-list__add-option"
+                            onClick={() => handleAdd('custom')}
+                        >
+                            ⚙️ Custom / Raw JSON
+                        </button>
                     </div>
                 )}
             </div>

@@ -834,6 +834,12 @@ body {
   border-color: var(--accent);
 }
 
+.action-row--unknown {
+  background: rgba(255, 183, 77, 0.08);
+  /* faint amber */
+  border-color: rgba(255, 183, 77, 0.3);
+}
+
 .action-row__header {
   display: flex;
   align-items: center;
