@@ -1,0 +1,10 @@
+{
+  "name": "blind-archivist",
+  "version": "1.0.0",
+  "main": "app.js",
+  "dependencies": {
+    "express": "^4.18.2",
+    "axios": "^1.6.0",
+    "serve-index": "^1.9.1"
+  }
+}
