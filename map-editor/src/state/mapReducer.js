@@ -6,7 +6,7 @@ let nodeCounter = 0;
 
 export function createInitialState() {
     const rootId = 'NODE_root';
-    nodeCounter = 1;
+    nodeCounter = 3;
 
     return {
         // ----- Map Data (serialized to JSON) -----
@@ -14,16 +14,42 @@ export function createInitialState() {
         root: rootId,
         nodes: {
             [rootId]: {
-                name: 'Root Node',
+                name: 'Entrance Hall',
                 text: 'Starting point of the map.',
                 image: null,
-                actions: [],
+                actions: [
+                    { type: 'move', to: 'NODE_armory' },
+                    {
+                        type: 'if',
+                        condition: { type: 'has_item', item: 'ITEM_key' },
+                        action: { type: 'move', to: 'NODE_throne' },
+                    },
+                ],
+            },
+            NODE_armory: {
+                name: 'Armory',
+                text: 'Weapons line the walls.',
+                image: null,
+                actions: [
+                    { type: 'move', to: rootId },
+                    { type: 'move', to: 'NODE_throne' },
+                ],
+            },
+            NODE_throne: {
+                name: 'Throne Room',
+                text: 'The king sits here.',
+                image: null,
+                actions: [
+                    { type: 'move', to: 'NODE_throne' },
+                ],
             },
         },
 
         // ----- Editor-Only State -----
         nodePositions: {
             [rootId]: { x: 0, y: 0 },
+            NODE_armory: { x: 300, y: 0 },
+            NODE_throne: { x: 150, y: 200 },
         },
         selectedNodeId: null,
         selectedItemId: null,
@@ -157,6 +183,34 @@ export function mapReducer(state, action) {
             };
         }
 
+        case 'RENAME_NODE': {
+            const { oldId, newId } = action.payload;
+            if (!state.nodes[oldId] || state.nodes[newId]) return state;
+
+            // Rebuild nodes with new key
+            const renamedNodes = {};
+            for (const [nodeId, nodeData] of Object.entries(state.nodes)) {
+                const key = nodeId === oldId ? newId : nodeId;
+                renamedNodes[key] = {
+                    ...nodeData,
+                    actions: renameNodeInActions(nodeData.actions, oldId, newId),
+                };
+            }
+
+            // Rebuild positions with new key
+            const { [oldId]: oldPos, ...restPositions } = state.nodePositions;
+            const renamedPositions = { ...restPositions, [newId]: oldPos };
+
+            return {
+                ...state,
+                nodes: renamedNodes,
+                nodePositions: renamedPositions,
+                root: state.root === oldId ? newId : state.root,
+                selectedNodeId: state.selectedNodeId === oldId ? newId : state.selectedNodeId,
+                isDirty: true,
+            };
+        }
+
         default:
             return state;
     }
@@ -169,7 +223,6 @@ function removeActionsReferencingNode(actions, deletedNodeId) {
             return false;
         }
         if (action.type === 'if' && action.action) {
-            // If the nested action references the deleted node, remove the whole if
             if (action.action.type === 'move' && action.action.to === deletedNodeId) {
                 return false;
             }
@@ -177,3 +230,20 @@ function removeActionsReferencingNode(actions, deletedNodeId) {
         return true;
     });
 }
+
+// Helper: rename node references in actions
+function renameNodeInActions(actions, oldId, newId) {
+    return actions.map(action => {
+        if (action.type === 'move' && action.to === oldId) {
+            return { ...action, to: newId };
+        }
+        if (action.type === 'if' && action.action) {
+            return {
+                ...action,
+                action: renameNodeInActions([action.action], oldId, newId)[0],
+            };
+        }
+        return action;
+    });
+}
+

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
 import CanvasNode from './CanvasNode';
+import EdgeLayer from './EdgeLayer';
 
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3.0;
@@ -144,6 +145,9 @@ export default function Canvas() {
             style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
         >
             <div className="canvas-grid" style={gridStyle} />
+
+            {/* Edge SVG overlay — rendered at container level with its own transform */}
+            <EdgeLayer pan={pan} zoom={zoom} />
 
             <div className="canvas-inner" style={transformStyle}>
                 <div className="canvas-origin" />
