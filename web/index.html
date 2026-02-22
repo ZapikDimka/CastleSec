@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CastleSec — API Integrated</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="js/app.js"></script>
+</head>
+<body>
+<div class="wrap">
+    <header>
+        <h1>CastleSec — Live API Edition</h1>
+    </header>
+
+    <div class="grid">
+        <div class="card">
+            <div class="top">
+                <div class="pillrow">
+                    <div class="pill">Status: <strong id="gameStatus">Online</strong></div>
+                    <div class="pill">Task Mode: <strong id="isSolving">False</strong></div>
+                </div>
+                <h2 class="sceneTitle" id="sceneTitle">Connecting...</h2>
+                <p class="sceneSub" id="sceneSub">Очікування даних від сервера</p>
+            </div>
+
+            <div class="scene">
+                <div class="imageContainer" id="sceneImgBox">
+                    <div style="color:var(--muted)">No Image Signal</div>
+                </div>
+
+                <div class="sceneDesc" id="sceneDescText">
+                    Спроба підключитися до http://127.0.0.1:8000...
+                </div>
+
+                <div class="actions">
+                    <div class="row" id="navButtons"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="top"><h3 style="margin:0; font-size:14px">Інвентар & Лог</h3></div>
+            <div class="scene">
+                <div id="inventoryContainer" class="inv-list">
+                    <div style="font-size:13px; color:var(--muted); text-align:center;">Порожньо</div>
+                </div>
+
+                <div style="margin-top: auto;">
+                    <div style="font-size:12px; color:var(--muted); margin-bottom:5px;">System Log:</div>
+                    <div class="log" id="gameLog"></div>
+                    <button onclick="updateState()" style="width:100%; margin-top:10px;">Refresh State</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

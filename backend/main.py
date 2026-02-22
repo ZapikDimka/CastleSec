@@ -6,6 +6,7 @@ from typing import Annotated
 from castle_sec_game.file import FileReader
 from castle_sec_game.game import Game
 from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from starlette import status
 
 from dto import game_to_dto, GameStateDto
@@ -34,6 +35,13 @@ async def lifespan(app: FastAPI):
 app = FastAPI(lifespan=lifespan)
 app.state = typing.cast(State, app.state)
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],  # Разрешает все методы (GET, POST и т.д.)
+    allow_headers=["*"],  # Разрешает все заголовки
+)
 
 def get_state(request: Request) -> State:
     return typing.cast(State, request.app.state)
