@@ -1,3 +1,4 @@
+import logging
 import typing
 from contextlib import asynccontextmanager
 from typing import Annotated
@@ -9,6 +10,9 @@ from starlette import status
 
 from dto import game_to_dto, GameStateDto
 
+
+logging.getLogger("game").setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 
 class State:
     game: Game
