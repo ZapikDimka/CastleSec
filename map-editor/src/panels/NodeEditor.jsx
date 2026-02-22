@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
 import ImagePicker from '../shared/ImagePicker';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import ActionList from '../actions/ActionList';
 
 export default function NodeEditor() {
     const state = useMapState();
@@ -155,12 +156,10 @@ export default function NodeEditor() {
                     />
                 </div>
 
-                {/* Actions placeholder */}
+                {/* Actions */}
                 <div className="panel__section">
                     <label className="panel__label">Actions</label>
-                    <div className="panel__placeholder">
-                        {node.actions.length} action{node.actions.length !== 1 ? 's' : ''} — editor coming in Step 5
-                    </div>
+                    <ActionList nodeId={selectedNodeId} actions={node.actions} />
                 </div>
 
                 {/* Buttons */}

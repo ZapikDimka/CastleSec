@@ -3,6 +3,7 @@ import { useMapState } from '../state/MapContext';
 export default function Toolbar() {
     const state = useMapState();
     const nodeCount = Object.keys(state.nodes).length;
+    const itemCount = Object.keys(state.items).length;
 
     const handleAddNode = () => {
         window.__mapEditorAddNode?.();
@@ -40,7 +41,7 @@ export default function Toolbar() {
 
             <div className="toolbar-status">
                 <span className="toolbar-status-dot" />
-                {nodeCount} node{nodeCount !== 1 ? 's' : ''}
+                {nodeCount} node{nodeCount !== 1 ? 's' : ''} · {itemCount} item{itemCount !== 1 ? 's' : ''}
             </div>
         </div>
     );
