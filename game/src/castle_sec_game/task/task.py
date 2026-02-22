@@ -4,6 +4,8 @@ import uuid
 from enum import Enum
 
 
+logger = logging.getLogger("game")
+
 class TaskResult(Enum):
     SUCCESS = 0
     FAILURE = 1
@@ -57,28 +59,28 @@ class Task:
             self._name
         ]
 
-        logging.info(f"[{self}] Launching task")
+        logger.info(f"[{self}] Launching task")
         self._process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
         try:
             await asyncio.wait_for(self._process.wait(), timeout=self._timeout)
-            logging.info(f"[{self}] Task completed with exit code {self._process.returncode}")
+            logger.info(f"[{self}] Task completed with exit code {self._process.returncode}")
             return TaskResult.SUCCESS if self._process.returncode == 0 else TaskResult.FAILURE
         except asyncio.TimeoutError:
-            logging.info(f"[{self}] Task timed out. Waiting for termination...")
+            logger.info(f"[{self}] Task timed out. Waiting for termination...")
             self._process.terminate()
             await self._process.wait()
-            logging.info(f"[{self}] Task terminated.")
+            logger.info(f"[{self}] Task terminated.")
             return TaskResult.TIMEOUT
         except asyncio.CancelledError:
-            logging.info(f"[{self}] Task was cancelled by the user")
+            logger.info(f"[{self}] Task was cancelled by the user")
             return TaskResult.TERMINATED
         except Exception as e:
-            logging.info(f"[{self}] Task failed:\n{e}")
+            logger.info(f"[{self}] Task failed:\n{e}")
             return TaskResult.ERROR
 
     async def terminate(self):
         if self._process is None:
             return
 
-        logging.info(f"[{self}] Terminating task.")
+        logger.info(f"[{self}] Terminating task.")
         self._task.cancel()

@@ -7,6 +7,8 @@ from castle_sec_game.map.map_node import MapNode
 from castle_sec_game.task.task import Task
 
 
+logger = logging.getLogger("game")
+
 class Game:
     _prev_node: MapNode | None = None
     _current_node: MapNode
@@ -37,7 +39,7 @@ class Game:
         return self._inventory
 
     def act(self, action: Action | None):
-        logging.debug(f"Applying game action: {action}")
+        logger.debug(f"Applying game action: {action}")
         if action is None:
             self._step()
             return
@@ -110,10 +112,10 @@ class Game:
                 return False
 
     def _move(self, node: MapNode):
-        logging.debug(f"Moving on map: {self._prev_node} -> {node}")
+        logger.debug(f"Moving on map: {self._prev_node} -> {node}")
         self._prev_node = self._current_node
         self._current_node = node
 
     def _step(self):
-        logging.debug("Game tick")
+        logger.debug("Game tick")
         self._build_actions()
