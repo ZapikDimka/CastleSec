@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
+import { useValidation } from '../validation/ValidationContext';
 import ImagePicker from '../shared/ImagePicker';
 import ConfirmDialog from '../shared/ConfirmDialog';
 
@@ -7,6 +8,7 @@ export default function ItemEditor({ itemId }) {
     const state = useMapState();
     const dispatch = useMapDispatch();
     const item = state.items[itemId];
+    const validation = useValidation();
 
     const [editingId, setEditingId] = useState(false);
     const [idValue, setIdValue] = useState('');
@@ -14,8 +16,22 @@ export default function ItemEditor({ itemId }) {
 
     if (!item) return null;
 
+    const itemIssues = validation.get(itemId) || [];
+    const prefixIssue = itemIssues.find(i => i.id === 'V-08');
+
     // Count references to this item
     const refs = getItemReferences(state.nodes, itemId);
+
+    // Listen for global delete shortcut
+    useEffect(() => {
+        const handleRequestDelete = () => {
+            if (itemId) {
+                setShowDeleteConfirm(true);
+            }
+        };
+        window.addEventListener('requestDelete', handleRequestDelete);
+        return () => window.removeEventListener('requestDelete', handleRequestDelete);
+    }, [itemId]);
 
     // ---- Field Handlers ----
     const handleNameChange = (e) => {
@@ -99,6 +115,11 @@ export default function ItemEditor({ itemId }) {
                     >
                         {itemId}
                     </span>
+                )}
+                {prefixIssue && (
+                    <div className="panel__validation-msg panel__validation-msg--warning">
+                        ⚠️ {prefixIssue.message}
+                    </div>
                 )}
             </div>
 

@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import { useMapDispatch } from '../state/MapContext';
+import { useMapState, useMapDispatch } from '../state/MapContext';
 import ActionEditor from './ActionEditor';
 import ConfirmDialog from '../shared/ConfirmDialog';
 
@@ -44,7 +44,33 @@ function getTypeBadge(type, action) {
     };
 }
 
+function getActionError(action, state) {
+    if (action.type === 'move') {
+        if (!action.to) return `Target node is missing`;
+        if (!state.nodes[action.to]) return `Node "${action.to}" not found`;
+    }
+    if (action.type === 'pickup') {
+        if (!action.item) return `Item is missing`;
+        if (!state.items[action.item]) return `Item "${action.item}" not found`;
+    }
+    if (action.type === 'if') {
+        if (action.condition?.type === 'has_item') {
+            if (!action.condition.item) return `Condition item is missing`;
+            if (!state.items[action.condition.item]) return `Condition item "${action.condition.item}" not found`;
+        }
+        if (action.action) {
+            const nested = Array.isArray(action.action) ? action.action : [action.action];
+            for (const a of nested) {
+                const err = getActionError(a, state);
+                if (err) return err;
+            }
+        }
+    }
+    return null;
+}
+
 export default function ActionList({ nodeId, actions }) {
+    const state = useMapState();
     const dispatch = useMapDispatch();
     const [expandedIndex, setExpandedIndex] = useState(null);
     const [showAddMenu, setShowAddMenu] = useState(false);
@@ -132,11 +158,13 @@ export default function ActionList({ nodeId, actions }) {
                 const isExpanded = expandedIndex === i;
                 const isDragging = dragIndex === i;
                 const isDragOver = dragOverIndex === i && dragIndex !== i;
+                const actionError = getActionError(action, state);
 
                 let rowClass = 'action-row';
                 if (badge.isUnknown) rowClass += ' action-row--unknown';
                 if (isDragging) rowClass += ' action-row--dragging';
                 if (isDragOver) rowClass += ' action-row--drag-over';
+                if (actionError) rowClass += ' action-row--error';
 
                 return (
                     <div
@@ -165,6 +193,11 @@ export default function ActionList({ nodeId, actions }) {
                             <span className="action-row__expand">
                                 {isExpanded ? '▾' : '▸'}
                             </span>
+                            {actionError && (
+                                <span className="action-row__error-icon" title={actionError}>
+                                    🔴
+                                </span>
+                            )}
                             <button
                                 className="action-row__delete"
                                 onClick={(e) => { e.stopPropagation(); setDeleteIndex(i); }}

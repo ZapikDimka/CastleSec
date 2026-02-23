@@ -1,16 +1,45 @@
 import { useState } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
+import { useValidation } from '../validation/ValidationContext';
 import { openMapFile, saveMapFile, saveAsMapFile, clearCurrentFileHandle } from '../io/fileIO';
 import ConfirmDialog from '../shared/ConfirmDialog';
 
 export default function Toolbar() {
     const state = useMapState();
     const dispatch = useMapDispatch();
+    const validation = useValidation();
 
     const nodeCount = Object.keys(state.nodes).length;
     const itemCount = Object.keys(state.items).length;
+    const canUndo = state.history?.past?.length > 0;
+    const canRedo = state.history?.future?.length > 0;
 
     const [pendingAction, setPendingAction] = useState(null);
+    const [pendingValidationSave, setPendingValidationSave] = useState(null);
+
+    // Calculate validation counts
+    let errorCount = 0;
+    let warningCount = 0;
+    for (const issues of validation.values()) {
+        for (const issue of issues) {
+            if (issue.severity === 'error') errorCount++;
+            if (issue.severity === 'warning') warningCount++;
+        }
+    }
+
+    const hasErrors = errorCount > 0;
+    const hasWarnings = warningCount > 0;
+
+    let validationStatusStr = '✓ No issues';
+    let dotColor = 'var(--success)';
+    if (hasErrors) {
+        dotColor = 'var(--danger)';
+        validationStatusStr = `${errorCount} error${errorCount !== 1 ? 's' : ''}`;
+        if (warningCount > 0) validationStatusStr += `, ${warningCount} warning${warningCount !== 1 ? 's' : ''}`;
+    } else if (hasWarnings) {
+        dotColor = 'var(--warning)';
+        validationStatusStr = `${warningCount} warning${warningCount !== 1 ? 's' : ''}`;
+    }
 
     const handleAddNode = () => {
         window.__mapEditorAddNode?.();
@@ -19,6 +48,13 @@ export default function Toolbar() {
     const runAction = (actionStr) => {
         if (state.isDirty && (actionStr === 'NEW' || actionStr === 'OPEN')) {
             setPendingAction(actionStr);
+        } else if (actionStr === 'SAVE' || actionStr === 'SAVE_AS') {
+            if (hasErrors) return; // handled by disabled button
+            if (hasWarnings) {
+                setPendingValidationSave(actionStr);
+                return;
+            }
+            executeAction(actionStr);
         } else {
             executeAction(actionStr);
         }
@@ -65,6 +101,15 @@ export default function Toolbar() {
         if (actionToRun) executeAction(actionToRun);
     };
 
+    const handleConfirmValidationSave = () => {
+        const actionToRun = pendingValidationSave;
+        setPendingValidationSave(null);
+        if (actionToRun) executeAction(actionToRun);
+    };
+
+    const saveTooltip = hasErrors ? "Cannot save: validation errors present" : "Save map";
+    const saveAsTooltip = hasErrors ? "Cannot save: validation errors present" : "Save map as new file";
+
     return (
         <div className="toolbar">
             <div className="toolbar-title">
@@ -79,16 +124,47 @@ export default function Toolbar() {
             <div className="toolbar-separator" />
 
             <div className="toolbar-group">
+                <button
+                    className="toolbar-btn"
+                    onClick={() => dispatch({ type: 'UNDO' })}
+                    title="Undo (Cmd/Ctrl+Z)"
+                    disabled={!canUndo}
+                >
+                    ↶ Undo
+                </button>
+                <button
+                    className="toolbar-btn"
+                    onClick={() => dispatch({ type: 'REDO' })}
+                    title="Redo (Cmd/Ctrl+Shift+Z)"
+                    disabled={!canRedo}
+                >
+                    ↷ Redo
+                </button>
+            </div>
+
+            <div className="toolbar-separator" />
+
+            <div className="toolbar-group">
                 <button className="toolbar-btn" onClick={() => runAction('NEW')} title="New map">
                     📄 New
                 </button>
                 <button className="toolbar-btn" onClick={() => runAction('OPEN')} title="Open map">
                     📂 Open
                 </button>
-                <button className="toolbar-btn" onClick={() => runAction('SAVE')} title="Save map">
+                <button
+                    className="toolbar-btn"
+                    onClick={() => runAction('SAVE')}
+                    title={saveTooltip}
+                    disabled={hasErrors}
+                >
                     💾 Save
                 </button>
-                <button className="toolbar-btn" onClick={() => runAction('SAVE_AS')} title="Save map as new file">
+                <button
+                    className="toolbar-btn"
+                    onClick={() => runAction('SAVE_AS')}
+                    title={saveAsTooltip}
+                    disabled={hasErrors}
+                >
                     💾 Save As...
                 </button>
             </div>
@@ -103,8 +179,14 @@ export default function Toolbar() {
 
             <div className="toolbar-spacer" />
 
-            <div className="toolbar-status">
-                <span className="toolbar-status-dot" />
+            <div className="toolbar-status" style={{ marginRight: '16px' }} title="Validation status">
+                <span className="toolbar-status-dot" style={{ backgroundColor: dotColor }} />
+                <span>{validationStatusStr}</span>
+            </div>
+
+            <div className="toolbar-separator" />
+
+            <div className="toolbar-status" style={{ marginLeft: '16px' }}>
                 {nodeCount} node{nodeCount !== 1 ? 's' : ''} · {itemCount} item{itemCount !== 1 ? 's' : ''}
             </div>
 
@@ -116,6 +198,16 @@ export default function Toolbar() {
                     danger
                     onConfirm={handleConfirmDiscard}
                     onCancel={() => setPendingAction(null)}
+                />
+            )}
+
+            {pendingValidationSave && (
+                <ConfirmDialog
+                    title="Validation Warnings"
+                    message={`There ${warningCount === 1 ? 'is 1 warning' : `are ${warningCount} warnings`} in your map. Are you sure you want to save?`}
+                    confirmLabel="Save Anyway"
+                    onConfirm={handleConfirmValidationSave}
+                    onCancel={() => setPendingValidationSave(null)}
                 />
             )}
         </div>

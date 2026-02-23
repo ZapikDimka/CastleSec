@@ -1,3 +1,5 @@
+import { pushHistory, undo, redo } from './history';
+
 // ============================================
 // Map Reducer — all map state mutations
 // ============================================
@@ -52,13 +54,28 @@ export function createInitialState() {
         selectedItemId: null,
         filePath: null,
         isDirty: false,
+        isDirty: false,
         _extraTopLevel: {},
         nodeCounter: 3,
         itemCounter: 0,
+        history: {
+            past: [],
+            future: [],
+        }
     };
 }
 
-export function mapReducer(state, action) {
+// Actions that mutate state but shouldn't create undo snapshots.
+const HISTORY_IGNORE = new Set([
+    'SELECT_NODE',
+    'SELECT_ITEM',
+    'MARK_SAVED',
+    'MOVE_NODE_POSITION',
+    'LOAD_MAP',
+    'NEW_MAP',
+]);
+
+function baseReducer(state, action) {
     switch (action.type) {
         case 'NEW_MAP':
             return createInitialState();
@@ -145,6 +162,16 @@ export function mapReducer(state, action) {
                     ...state.nodePositions,
                     [id]: { x, y },
                 },
+            };
+        }
+
+        case 'COMMIT_NODE_POSITION': {
+            // Fired on drag end (just triggers a history snapshot before doing nothing here).
+            // Actually wait, if the payload contains (x,y), we could merge it, but drag handles the live position.
+            // When drag ends, we want to save history. So we just act as a dummy mutation to trigger `pushHistory`.
+            return {
+                ...state,
+                isDirty: true
             };
         }
 
@@ -261,6 +288,10 @@ export function mapReducer(state, action) {
                 nodeCounter: Object.keys(nodes).length,
                 itemCounter: Object.keys(items || {}).length,
                 filePath: action.payload.filename || 'map.json',
+                history: {
+                    past: [],
+                    future: [],
+                }
             };
         }
 
@@ -365,6 +396,29 @@ export function mapReducer(state, action) {
         default:
             return state;
     }
+}
+
+export function mapReducer(state, action) {
+    if (action.type === 'UNDO') {
+        return undo(state);
+    }
+    if (action.type === 'REDO') {
+        return redo(state);
+    }
+
+    // Determine if we need to push history BEFORE applying the new state.
+    const shouldPushHistory = !HISTORY_IGNORE.has(action.type);
+
+    // Base reducer logic
+    const nextState = baseReducer(state, action);
+
+    // Did it actually change?
+    if (nextState !== state && shouldPushHistory) {
+        // Push the OLD state to history. By design we snapshot before applying the mutation.
+        return pushHistory(nextState, state);
+    }
+
+    return nextState;
 }
 
 // Helper: recursively remove actions that reference a deleted node

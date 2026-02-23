@@ -1,5 +1,6 @@
 import { serialize } from './serialize';
 import { deserialize } from './deserialize';
+import { validate } from '../validation/validate';
 
 // Store live file handles outside of React state since they aren't serializable
 let currentGameHandle = null;
@@ -82,6 +83,13 @@ export async function openMapFile() {
  * Saves current state to current file handle. If none, prompts Save As.
  */
 export async function saveMapFile(state, currentFilename) {
+    const issues = validate(state);
+    for (const entityIssues of issues.values()) {
+        if (entityIssues.some(i => i.severity === 'error')) {
+            throw new Error('Cannot save map with validation errors.');
+        }
+    }
+
     if (!supportsFSA) {
         return saveMapFallback(state, currentFilename || 'map.json');
     }
@@ -113,6 +121,13 @@ export async function saveMapFile(state, currentFilename) {
  * Prompts user for location, then saves
  */
 export async function saveAsMapFile(state) {
+    const issues = validate(state);
+    for (const entityIssues of issues.values()) {
+        if (entityIssues.some(i => i.severity === 'error')) {
+            throw new Error('Cannot save map with validation errors.');
+        }
+    }
+
     if (!supportsFSA) {
         return saveMapFallback(state, 'map.json');
     }

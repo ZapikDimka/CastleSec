@@ -1,4 +1,6 @@
 import { useMapState, useMapDispatch } from '../state/MapContext';
+import { getAssetUrl } from '../shared/assetHelper';
+import { useOptimizedImage } from '../shared/useOptimizedImage';
 import ItemEditor from './ItemEditor';
 
 export default function ItemPanel() {
@@ -32,32 +34,16 @@ export default function ItemPanel() {
                     {itemIds.length === 0 && (
                         <div className="item-list__empty">No items yet. Add one to get started.</div>
                     )}
-                    {itemIds.map(id => {
-                        const item = items[id];
-                        const isSelected = id === selectedItemId;
-                        return (
-                            <div
-                                key={id}
-                                className={`item-row ${isSelected ? 'item-row--selected' : ''}`}
-                                onClick={() => handleSelectItem(id)}
-                            >
-                                {item.image && (
-                                    <div className="item-row__thumb">
-                                        <img src={item.image} alt="" />
-                                    </div>
-                                )}
-                                <div className="item-row__info">
-                                    <span className="item-row__name">{item.name}</span>
-                                    <span className="item-row__id">{id}</span>
-                                </div>
-                                {refCounts[id] > 0 && (
-                                    <span className="item-row__refs" title={`Referenced by ${refCounts[id]} action(s)`}>
-                                        {refCounts[id]}
-                                    </span>
-                                )}
-                            </div>
-                        );
-                    })}
+                    {itemIds.map(id => (
+                        <ItemRow
+                            key={id}
+                            id={id}
+                            item={items[id]}
+                            isSelected={id === selectedItemId}
+                            refCount={refCounts[id]}
+                            onSelect={() => handleSelectItem(id)}
+                        />
+                    ))}
                 </div>
 
                 {/* Add Item */}
@@ -89,4 +75,37 @@ function countItemRefs(actions, counts) {
             }
         }
     }
+}
+
+function ItemRow({ id, item, isSelected, refCount, onSelect }) {
+    const absoluteImagePath = getAssetUrl(item?.image);
+    const optimizedImageSrc = useOptimizedImage(absoluteImagePath, 256, 256);
+
+    const handleImageClick = (e) => {
+        if (!absoluteImagePath) return;
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('openFullscreenImage', { detail: absoluteImagePath }));
+    };
+
+    return (
+        <div
+            className={`item-row ${isSelected ? 'item-row--selected' : ''}`}
+            onClick={onSelect}
+        >
+            {optimizedImageSrc && (
+                <div className="item-row__thumb" onClick={handleImageClick}>
+                    <img src={optimizedImageSrc} alt="" />
+                </div>
+            )}
+            <div className="item-row__info">
+                <span className="item-row__name">{item.name}</span>
+                <span className="item-row__id">{id}</span>
+            </div>
+            {refCount > 0 && (
+                <span className="item-row__refs" title={`Referenced by ${refCount} action(s)`}>
+                    {refCount}
+                </span>
+            )}
+        </div>
+    );
 }

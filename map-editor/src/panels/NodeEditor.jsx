@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
+import { useValidation } from '../validation/ValidationContext';
 import ImagePicker from '../shared/ImagePicker';
 import ConfirmDialog from '../shared/ConfirmDialog';
 import ActionList from '../actions/ActionList';
@@ -14,9 +15,26 @@ export default function NodeEditor() {
     const [idValue, setIdValue] = useState('');
 
     const node = selectedNodeId ? nodes[selectedNodeId] : null;
+    const validation = useValidation();
+
     if (!node) return null;
 
+    const nodeIssues = validation.get(selectedNodeId) || [];
+    const orphanIssue = nodeIssues.find(i => i.id === 'V-09');
+    const prefixIssue = nodeIssues.find(i => i.id === 'V-07');
+
     const isRoot = selectedNodeId === root;
+
+    // Listen for global delete shortcut
+    useEffect(() => {
+        const handleRequestDelete = () => {
+            if (selectedNodeId && !isRoot) {
+                setShowDeleteConfirm(true);
+            }
+        };
+        window.addEventListener('requestDelete', handleRequestDelete);
+        return () => window.removeEventListener('requestDelete', handleRequestDelete);
+    }, [selectedNodeId, isRoot]);
 
     // ---- Field Handlers ----
     const handleNameChange = (e) => {
@@ -121,10 +139,20 @@ export default function NodeEditor() {
                     )}
                     {isRoot && <span className="panel__root-badge">★ Root</span>}
                 </div>
+                {prefixIssue && (
+                    <div className="panel__validation-msg panel__validation-msg--warning">
+                        ⚠️ {prefixIssue.message}
+                    </div>
+                )}
             </div>
 
             {/* Properties */}
             <div className="panel__body">
+                {orphanIssue && (
+                    <div className="panel__validation-msg panel__validation-msg--warning" style={{ marginBottom: '8px' }}>
+                        ⚠️ {orphanIssue.message}
+                    </div>
+                )}
                 <div className="panel__section">
                     <label className="panel__label">Name</label>
                     <input

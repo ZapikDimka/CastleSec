@@ -1,27 +1,9 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
+import { getAssetUrl, cacheFileUrl } from './assetHelper';
+import { useOptimizedImage } from './useOptimizedImage';
 
 export default function ImagePicker({ value, onChange }) {
     const fileInputRef = useRef(null);
-    const [localPreview, setLocalPreview] = useState(null);
-
-    // Clear local preview if value is cleared externally
-    useEffect(() => {
-        if (!value) {
-            if (localPreview) {
-                URL.revokeObjectURL(localPreview);
-            }
-            setLocalPreview(null);
-        }
-    }, [value]);
-
-    // Clean up object URLs on unmount
-    useEffect(() => {
-        return () => {
-            if (localPreview) {
-                URL.revokeObjectURL(localPreview);
-            }
-        };
-    }, [localPreview]);
 
 
     const handleClick = () => {
@@ -32,12 +14,8 @@ export default function ImagePicker({ value, onChange }) {
         const file = e.target.files?.[0];
         if (!file) return;
 
-        if (localPreview) {
-            URL.revokeObjectURL(localPreview);
-        }
-
         const url = URL.createObjectURL(file);
-        setLocalPreview(url);
+        cacheFileUrl(file.name, url);
 
         // Store just the filename for now; relative path logic added in File I/O step
         onChange(file.name);
@@ -50,7 +28,14 @@ export default function ImagePicker({ value, onChange }) {
         onChange(null);
     };
 
-    const previewSrc = localPreview || value;
+    const absoluteImagePath = getAssetUrl(value);
+    const optimizedImageSrc = useOptimizedImage(absoluteImagePath, 256, 256);
+
+    const handleImageClick = (e) => {
+        if (!absoluteImagePath) return;
+        e.stopPropagation();
+        window.dispatchEvent(new CustomEvent('openFullscreenImage', { detail: absoluteImagePath }));
+    };
 
     return (
         <div className="image-picker">
@@ -64,7 +49,14 @@ export default function ImagePicker({ value, onChange }) {
 
             {value ? (
                 <div className="image-picker__preview">
-                    <img src={previewSrc} alt="Thumbnail preview" className="image-picker__thumbnail" />
+                    {optimizedImageSrc && (
+                        <img
+                            src={optimizedImageSrc}
+                            alt="Thumbnail preview"
+                            className="image-picker__thumbnail"
+                            onClick={handleImageClick}
+                        />
+                    )}
                     <div className="image-picker__footer">
                         <div className="image-picker__filename" title={value}>
                             🖼 {value}
