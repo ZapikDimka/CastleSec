@@ -39,7 +39,26 @@ function renderGame(data) {
     document.getElementById("sceneSub").innerText = data.is_solving_task ? "Потрібне вирішення завдання" : "Локація дослідження";
     document.getElementById("sceneDescText").innerText = data.node.text || "";
 
-    // Рендер кнопок дій [cite: 27-35]
+
+    const imgBox = document.getElementById("sceneImgBox");
+    const nodeId = data.node.id;
+    const nodeName = data.node.name || "";
+
+    imgBox.innerHTML = "";
+
+    //Заглушка поки ендпоінти не передають назву спрайту для показу
+    if (nodeName.includes("A Node")) {
+        imgBox.innerHTML = `<img src="/web/assets/img/roomA.png">`;
+    }
+    else if (nodeName.includes("B Node")) {
+        imgBox.innerHTML = `<img src="/web/assets/img/roomB.png">`;
+    }
+    else if (nodeName.includes("Root Node")) {
+        imgBox.innerHTML = `<img src="/web/assets/img/background1.png">`;
+    }
+    else {
+        imgBox.innerHTML = `<div style="color:var(--muted); font-size: 12px;">Сигнал відсутній: ${nodeId}</div>`;
+    }
     const btnRow = document.getElementById("navButtons");
     btnRow.innerHTML = "";
 
@@ -77,6 +96,24 @@ function log(msg) {
     const logEl = document.getElementById("gameLog");
     const time = new Date().toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
     logEl.innerText = `[${time}] ${msg}\n` + logEl.innerText;
+}
+
+function showConfirm() {
+    document.getElementById("confirmOverlay").classList.add("show");
+}
+
+function closeConfirm() {
+    document.getElementById("confirmOverlay").classList.remove("show");
+}
+
+function confirmReset() {
+    closeConfirm();
+    log("SYSTEM: Скидання стану до початкового...");
+    updateState();
+}
+
+function toggleMap() {
+    log("SYSTEM: Карта тимчасово недоступна.");
 }
 
 window.onload = updateState;
