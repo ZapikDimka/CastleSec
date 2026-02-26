@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from pathlib import Path
 
 from .item_dto import ItemDto
 from .map_dto import MapDto
@@ -16,11 +17,18 @@ logger = logging.getLogger("game")
 
 class FileReader:
     _filename: str
+    _assets_folder: Path
     _map_nodes: dict[str, MapNode] = {}
     _items: dict[str, InventoryItem] = {}
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, assets_folder: str):
         self._filename = filename
+        self._assets_folder = Path(assets_folder)
+        if not self._assets_folder.exists() or not self._assets_folder.is_dir():
+            logger.error(f"Assets folder does not exist: '{self._assets_folder}'")
+            raise ValueError(f"Assets folder does not exist: '{self._assets_folder}'")
+
+        logger.info(f"Setting assets folder to: '{self._assets_folder}'")
 
     def __str__(self):
         return f"FileReader({self._filename})"
@@ -62,10 +70,10 @@ class FileReader:
             self._items[id] = self._build_item(item)
 
     def _build_item(self, dto: ItemDto) -> InventoryItem:
-        return InventoryItem(name=dto.name)
+        return InventoryItem(name=dto.name, image=self._validate_image_path(dto.image))
 
     def _build_map_node(self, dto: MapNodeDto) -> MapNode:
-        return MapNode(name=dto.name, text=dto.text, actions=[])
+        return MapNode(name=dto.name, text=dto.text, image=self._validate_image_path(dto.image), actions=[])
 
     def _build_actions(self, actions: List[ActionArchetypeDto]) -> list[ActionArchetype]:
         return [self._build_action(action) for action in actions]
@@ -111,3 +119,11 @@ class FileReader:
             raise ValueError(f"Inventory item not found: id='{id}'")
 
         return item
+
+    def _validate_image_path(self, image: str) -> str:
+        image_path = self._assets_folder / image
+        if not image_path.exists():
+            logger.error(f"Image doesn't exist: '{image}'")
+            raise ValueError(f"Image doesn't exist: '{image}'")
+
+        return image

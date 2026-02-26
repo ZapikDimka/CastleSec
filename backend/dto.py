@@ -6,6 +6,7 @@ from pydantic import BaseModel
 
 class InventoryItemDto(BaseModel):
     name: str
+    image: str
 
 class InventoryDto(BaseModel):
     items: list[InventoryItemDto]
@@ -13,6 +14,7 @@ class InventoryDto(BaseModel):
 class MapNodeDto(BaseModel):
     name: str
     text: str
+    image: str
 
 class ActionDto(BaseModel):
     text: str
@@ -28,11 +30,13 @@ def node_to_dto(node: MapNode) -> MapNodeDto:
     return MapNodeDto(
         name=node.name,
         text=node.text,
+        image=node.image
     )
 
 def inventory_item_to_dto(item: InventoryItem) -> InventoryItemDto:
     return InventoryItemDto(
-        name=item.name
+        name=item.name,
+        image=item.image
     )
 
 def inventory_to_dto(inventory: Inventory) -> InventoryDto:

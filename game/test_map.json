@@ -1,13 +1,16 @@
 {
   "items": {
     "ITEM_dog_shit": {
-      "name": "Dog Shit"
+      "name": "Dog Shit",
+      "image": "item_icon_placeholder.png"
     },
     "ITEM_key": {
-      "name": "Key"
+      "name": "Key",
+      "image": "item_icon_placeholder.png"
     },
     "ITEM_golden_loaf": {
-      "name": "Golden Loaf"
+      "name": "Golden Loaf",
+      "image": "item_icon_placeholder.png"
     }
   },
   "root": "NODE_root",
@@ -15,6 +18,7 @@
     "NODE_root": {
       "name": "Root Node",
       "text": "You see a root.",
+      "image": "img1.png",
       "actions": [
         {
           "type": "return"
@@ -36,6 +40,7 @@
     "NODE_a": {
       "name": "A Node",
       "text": "Hello, Leatherman",
+      "image": "img2.png",
       "actions": [
         {
           "type": "return"
@@ -49,6 +54,7 @@
     "NODE_b": {
       "name": "B Node",
       "text": "You encounter node B",
+      "image": "img3.png",
       "actions": [
         {
           "type": "return"

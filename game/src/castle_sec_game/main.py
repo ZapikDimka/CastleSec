@@ -99,7 +99,7 @@ async def run_game():
         MoveActionArchetype(node_b)
     ])
     '''
-    reader = FileReader("test_map.json")
+    reader = FileReader("test_map.json", "assets")
     root_node = reader.read_file()
 
     game = Game(root_node)
