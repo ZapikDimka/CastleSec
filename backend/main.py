@@ -7,12 +7,15 @@ from castle_sec_game.file import FileReader
 from castle_sec_game.game import Game
 from fastapi import FastAPI, HTTPException, Request, Depends
 from starlette import status
+from starlette.staticfiles import StaticFiles
 
 from dto import game_to_dto, GameStateDto
 
 
 logging.getLogger("game").setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
+
+assets_path = "../game/assets"
 
 class State:
     game: Game
@@ -23,7 +26,7 @@ class State:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    reader = FileReader("../game/test_map.json", "../game/assets")
+    reader = FileReader("../game/test_map.json", assets_path)
     root_node = reader.read_file()
     game = Game(root_node)
     app.state = State(game=game)
@@ -59,3 +62,5 @@ async def perform_action(index: int, game: Annotated[Game, Depends(get_game)]) -
 
     action = actions[index]
     game.act(action)  # TODO: Handle?
+
+app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
