@@ -51,6 +51,8 @@ class Task:
         ]
         '''
         # --service-ports
+
+        # TODO: Un-hardcode tasks folder
         cmd = [
             "docker", "compose",
             "-p", f"{self}",
