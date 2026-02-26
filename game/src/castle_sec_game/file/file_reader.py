@@ -18,12 +18,14 @@ logger = logging.getLogger("game")
 class FileReader:
     _filename: str
     _asset_names: set[str] = set()
+    _task_names: set[str] = set()
     _map_nodes: dict[str, MapNode] = {}
     _items: dict[str, InventoryItem] = {}
 
-    def __init__(self, filename: str, assets_folder: str):
+    def __init__(self, filename: str, assets_folder: str, tasks_folder: str):
         self._filename = filename
         self._load_asset_names(Path(assets_folder))
+        self._load_task_names(Path(tasks_folder))
 
     def __str__(self):
         return f"FileReader({self._filename})"
@@ -83,7 +85,7 @@ class FileReader:
             case PickUpItemActionArchetypeDto():
                 return PickUpItemActionArchetype(self._find_inventory_item(action.item))
             case SolveTaskActionArchetypeDto():
-                return SolveTaskActionArchetype(action.name) # TODO: Validate task exists
+                return SolveTaskActionArchetype(self._validate_task_name(action.name))
             case ConditionalActionArchetypeDto():
                 return ConditionalActionArchetype(self._build_condition(action.condition), self._build_action(action.action))
             case _:
@@ -122,12 +124,29 @@ class FileReader:
 
         return image
 
+    def _validate_task_name(self, task: str) -> str:
+        if task not in self._task_names:
+            logger.error(f"Task doesn't exist: '{task}'")
+            raise ValueError(f"Task doesn't exist: '{task}'")
+
+        return task
+
     def _load_asset_names(self, assets_folder: Path):
         logger.info(f"Setting assets folder to: '{assets_folder}'")
         if not assets_folder.exists() or not assets_folder.is_dir():
             logger.error(f"Assets folder does not exist: '{assets_folder}'")
             raise ValueError(f"Assets folder does not exist: '{assets_folder}'")
 
-        self._asset_names = {child.name for child in assets_folder.iterdir()}
+        self._asset_names = {child.name for child in assets_folder.iterdir() if child.is_file()}
         logger.info(f"Loaded {len(self._asset_names)} assets")
         logger.debug(f"Asset names: {self._asset_names}")
+
+    def _load_task_names(self, tasks_folder: Path):
+        logger.info(f"Setting tasks folder to: '{tasks_folder}'")
+        if not tasks_folder.exists() or not tasks_folder.is_dir():
+            logger.error(f"Tasks folder does not exist: '{tasks_folder}'")
+            raise ValueError(f"Tasks folder does not exist: '{tasks_folder}'")
+
+        self._task_names = {child.name for child in tasks_folder.iterdir() if child.is_dir()}
+        logger.info(f"Loaded {len(self._task_names)} tasks")
+        logger.debug(f"Tasks names: {self._task_names}")

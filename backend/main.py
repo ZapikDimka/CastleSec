@@ -26,7 +26,7 @@ class State:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    reader = FileReader("../game/test_map.json", assets_path)
+    reader = FileReader("../game/test_map.json", assets_path, "../tasks")
     root_node = reader.read_file()
     game = Game(root_node)
     app.state = State(game=game)
