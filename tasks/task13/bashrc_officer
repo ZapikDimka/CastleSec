@@ -1,0 +1,5 @@
+echo "👑 CastleSec / T13: 'Коронація' (Vertical PrivEsc to Root)"
+echo "Ти вже офіцер. Далі шлях лише вгору — до Годинникової Вежі."
+echo "📜 Записка: ~/tower_note.txt"
+echo ""
+export PS1="officer@clocktower:\\w\\$ "
