@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вартовий-Педант</title>
+    <style>
+        body { font-family: monospace; background-color: #0d0d0d; color: #00ff00; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px;}
+        .container { background-color: #1a1a1a; padding: 25px; border: 1px solid #333; border-radius: 8px; width: 450px; box-shadow: 0 0 15px rgba(0, 255, 0, 0.1); }
+        h2 { text-align: center; margin-top: 0; color: #00ff00; text-transform: uppercase; letter-spacing: 2px;}
+        input { width: calc(100% - 22px); padding: 10px; margin: 10px 0; background: #000; color: #00ff00; border: 1px solid #00ff00; font-family: monospace;}
+        button { padding: 10px; background: #00ff00; color: #000; border: none; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 10px; font-family: monospace; text-transform: uppercase;}
+        button:hover { background: #00cc00; }
+        .message-box { margin: 15px 0; font-weight: bold; min-height: 20px; text-align: center; word-break: break-all;}
+        .error { color: #ff4444; }
+        .success { color: gold; }
+        .lore { font-size: 0.85em; color: #aaa; background: #111; padding: 15px; border-left: 3px solid #00ff00; margin-bottom: 20px; line-height: 1.4;}
+        .lore a { color: #00ff00; text-decoration: underline; }
+        .lore a:hover { color: #fff; }
+        .flag-section { margin-top: 25px; padding-top: 15px; border-top: 1px dashed #444; }
+        .flag-section input { border-color: gold; color: gold; }
+        .flag-section button { background: gold; color: #000; }
+        .flag-section button:hover { background: #ccaa00; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Чорний хід</h2>
+
+    <div class="lore">
+        <p>👁️ <b>Легенда:</b> Охоронець-педант запам'ятовує кожного, хто підходить до дверей, фіксуючи звідки він прийшов (IP-адресу). Після 3 невдалих спроб вгадати пароль він наглухо блокує двері для цього візитера.</p>
+        <p>💡 <b>Підказка від Гільдії:</b> Тобі <b>не потрібно</b> по-справжньому змінювати свій IP, використовувати VPN чи складні проксі! Охоронець наївний і сліпо вірить HTTP-заголовку <code>X-Forwarded-For</code>. </p>
+        <p>Напиши скрипт, який буде <a href="/dictionary.txt" target="_blank">перебирати слова зі словника</a>, і просто генеруй випадкову адресу в цьому заголовку для кожного нового запиту. Охоронець думатиме, що це щоразу приходить нова людина!</p>
+    </div>
+
+    <input type="text" id="password" placeholder="Введіть кодове слово...">
+    <button onclick="tryLogin()">Сказати слово</button>
+    <div id="loginMessage" class="message-box"></div>
+
+    <div class="flag-section">
+        <h3 style="text-align: center; margin: 0 0 10px 0; color: gold;">Здати прапорець</h3>
+        <input type="text" id="flagInput" placeholder="CTF{...}">
+        <button onclick="submitFlag()">Відправити</button>
+        <div id="flagMessage" class="message-box"></div>
+    </div>
+</div>
+
+<script>
+    async function tryLogin() {
+        const password = document.getElementById('password').value;
+        const msgDiv = document.getElementById('loginMessage');
+        msgDiv.textContent = "Перевірка...";
+        msgDiv.className = "message-box";
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                msgDiv.innerHTML = `${data.message}<br><br><span style="color: gold; font-size: 1.2em;"><b>${data.flag}</b></span>`;
+                msgDiv.className = "message-box success";
+            } else {
+                msgDiv.textContent = data.error + (data.attemptsLeft !== undefined ? ` (Залишилось: ${data.attemptsLeft})` : "");
+                msgDiv.className = "message-box error";
+            }
+        } catch (error) {
+            msgDiv.textContent = "Помилка зв'язку з сервером.";
+            msgDiv.className = "message-box error";
+        }
+    }
+
+    async function submitFlag() {
+        const flag = document.getElementById('flagInput').value.trim();
+        const msgDiv = document.getElementById('flagMessage');
+
+        if (!flag) {
+            msgDiv.textContent = "Будь ласка, введіть прапорець!";
+            msgDiv.className = "message-box error";
+            return;
+        }
+
+        msgDiv.textContent = "Перевірка прапорця...";
+        msgDiv.className = "message-box";
+
+        try {
+            const response = await fetch('/api/submit-flag', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ flag })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                msgDiv.textContent = data.message;
+                msgDiv.className = "message-box success";
+            } else {
+                msgDiv.textContent = data.error;
+                msgDiv.className = "message-box error";
+            }
+        } catch (error) {
+            msgDiv.textContent = "Помилка зв'язку з сервером.";
+            msgDiv.className = "message-box error";
+        }
+    }
+</script>
+</body>
+</html>

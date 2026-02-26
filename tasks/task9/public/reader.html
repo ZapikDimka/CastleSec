@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>T9 — Читальна зала</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <h1>Читальна зала</h1>
+      <p class="sub">Книги відкриваються через параметр у URL: <code>path=...</code>.</p>
+      <p class="muted">Поточний path: <code id="currentPath">...</code></p>
+      <p class="muted">Стан коридору: <span id="lore">...</span></p>
+    </header>
+
+    <section class="card">
+      <h2>Вміст</h2>
+      <p id="hint" class="muted"></p>
+      <pre id="output" class="output">...</pre>
+      <h3 class="h3">Сусідні полиці (якщо це директорія)</h3>
+      <div id="dirList" class="grid"></div>
+      <div class="row" style="margin-top:10px">
+        <a class="btnlink" href="/">← Назад</a>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Здати флаг</h2>
+      <div class="row">
+        <input id="flagInput" type="text" placeholder="FLAG{...}" />
+        <button id="submitBtn">Відправити</button>
+      </div>
+      <p id="submitMsg" class="muted"></p>
+    </section>
+  </main>
+
+  <script src="reader.js"></script>
+</body>
+</html>
