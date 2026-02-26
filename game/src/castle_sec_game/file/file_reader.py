@@ -17,18 +17,13 @@ logger = logging.getLogger("game")
 
 class FileReader:
     _filename: str
-    _assets_folder: Path
+    _asset_names: set[str] = set()
     _map_nodes: dict[str, MapNode] = {}
     _items: dict[str, InventoryItem] = {}
 
     def __init__(self, filename: str, assets_folder: str):
         self._filename = filename
-        self._assets_folder = Path(assets_folder)
-        if not self._assets_folder.exists() or not self._assets_folder.is_dir():
-            logger.error(f"Assets folder does not exist: '{self._assets_folder}'")
-            raise ValueError(f"Assets folder does not exist: '{self._assets_folder}'")
-
-        logger.info(f"Setting assets folder to: '{self._assets_folder}'")
+        self._load_asset_names(Path(assets_folder))
 
     def __str__(self):
         return f"FileReader({self._filename})"
@@ -121,9 +116,18 @@ class FileReader:
         return item
 
     def _validate_image_path(self, image: str) -> str:
-        image_path = self._assets_folder / image
-        if not image_path.exists():
+        if image not in self._asset_names:
             logger.error(f"Image doesn't exist: '{image}'")
             raise ValueError(f"Image doesn't exist: '{image}'")
 
         return image
+
+    def _load_asset_names(self, assets_folder: Path):
+        logger.info(f"Setting assets folder to: '{assets_folder}'")
+        if not assets_folder.exists() or not assets_folder.is_dir():
+            logger.error(f"Assets folder does not exist: '{assets_folder}'")
+            raise ValueError(f"Assets folder does not exist: '{assets_folder}'")
+
+        self._asset_names = {child.name for child in assets_folder.iterdir()}
+        logger.info(f"Loaded {len(self._asset_names)} assets")
+        logger.debug(f"Asset names: {self._asset_names}")
