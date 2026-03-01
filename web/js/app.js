@@ -38,27 +38,9 @@ function renderGame(data) {
     document.getElementById("sceneTitle").innerText = data.node.name || "Unknown";
     document.getElementById("sceneSub").innerText = data.is_solving_task ? "Потрібне вирішення завдання" : "Локація дослідження";
     document.getElementById("sceneDescText").innerText = data.node.text || "";
+document.getElementById("sceneImgBox").innerHTML = `<img src="/game/assets/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
 
-
-    const imgBox = document.getElementById("sceneImgBox");
-    const nodeId = data.node.id;
-    const nodeName = data.node.name || "";
-
-    imgBox.innerHTML = "";
-
-    //Заглушка поки ендпоінти не передають назву спрайту для показу
-    if (nodeName.includes("A Node")) {
-        imgBox.innerHTML = `<img src="/web/assets/img/roomA.png">`;
-    }
-    else if (nodeName.includes("B Node")) {
-        imgBox.innerHTML = `<img src="/web/assets/img/roomB.png">`;
-    }
-    else if (nodeName.includes("Root Node")) {
-        imgBox.innerHTML = `<img src="/web/assets/img/background1.png">`;
-    }
-    else {
-        imgBox.innerHTML = `<div style="color:var(--muted); font-size: 12px;">Сигнал відсутній: ${nodeId}</div>`;
-    }
+    // Рендер кнопок дій [cite: 27-35]
     const btnRow = document.getElementById("navButtons");
     btnRow.innerHTML = "";
 
@@ -81,12 +63,15 @@ function renderGame(data) {
     const items = data.inventory?.items || [];
 
     if (items.length === 0) {
-        invBox.innerHTML = `<div style="font-size:13px; color:var(--muted); text-align:center; padding:10px;">(Порожньо)</div>`;
+        invBox.innerHTML = `<div style="font-size:13px; color:var(--muted); text-align:center; padding:10px;">Порожньо</div>`;
     } else {
         items.forEach(item => {
             const itemEl = document.createElement("div");
             itemEl.className = "inv-item";
-            itemEl.innerHTML = `<div style="font-size:13px">${item.name}</div>`;
+            itemEl.innerHTML = `
+                <img src="/game/assets/item_icon_placeholder.png" alt="icon" style="max-height: 50px">
+                <div class="inv-name">${item.name}</div>
+            `;
             invBox.appendChild(itemEl);
         });
     }
