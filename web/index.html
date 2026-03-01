@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>CastleSec</title>
+    <link rel="stylesheet" type="text/css" href="css/style.css">
+    <script src="js/app.js"></script>
+</head>
+<body>
+<div class="wrap">
+    <div class="grid">
+        <div class="card">
+            <div class="top">
+                <div class="pillrow">
+                    <div class="pill">Status: <strong id="gameStatus">Online</strong></div>
+                    <div class="pill">Task Mode: <strong id="isSolving">False</strong></div>
+                </div>
+                <h2 class="sceneTitle" id="sceneTitle">Connecting...</h2>
+                <p class="sceneSub" id="sceneSub">Очікування даних від сервера</p>
+            </div>
+
+            <div class="scene">
+                <div class="imageContainer" id="sceneImgBox">
+                    <div style="color:var(--muted)">No Image Signal</div>
+                </div>
+
+                <div class="sceneDesc" id="sceneDescText">
+                    Спроба підключитися до http://127.0.0.1:8000...
+                </div>
+                <div class="actions">
+                    <div class="row" id="navButtons"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="top"><h3 style="margin:0; font-size:14px">Інвентар</h3></div>
+            <div class="scene">
+                <div id="inventoryContainer" class="inv-list">
+                    <div style="font-size:13px; color:var(--muted); text-align:center;">Порожньо</div>
+                </div>
+
+                <div style="margin-top: auto;">
+                    <div style="font-size:14px; color: white; margin-bottom:10px;">System Log:</div>
+                    <div class="log" id="gameLog"></div>
+                    <div style="display: flex; gap: 10px; margin-top: 10px;">
+                        <button onclick="toggleMap()" style="flex: 1;">Карта</button>
+                        <button onclick="showConfirm()" style="flex: 1; border-color: var(--danger); color: var(--danger);">Refresh State</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="confirmOverlay">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modalTop">
+            <h3 style="margin:0; font-size:15px">⚠️ Підтвердження</h3>
+        </div>
+        <div class="modalBody">
+            <p style="text-align:center; margin: 10px 0;">Ви впевнені, що хочете скинути стан?</p>
+        </div>
+        <div class="modalBottom">
+            <button onclick="closeConfirm()">Ні</button>
+            <button class="primary" onclick="confirmReset()">Так</button>
+        </div>
+    </div>
+</div>
+
+<div class="overlay" id="sqlOverlay">
+    <div class="modal">
+        <div class="modalTop">
+            <h3 style="margin:0; font-size:15px">🔒 Security Gate</h3>
+        </div>
+        <div class="modalBody">
+            <div class="codeBox" id="sqlPreview">SELECT * FROM users WHERE u='...' AND p='...'</div>
+            <div class="input-group">
+                <label>Login:</label>
+                <input type="text" id="hackUser" class="hack-input" autocomplete="off">
+            </div>
+            <div class="input-group">
+                <label>Password:</label>
+                <input type="text" id="hackPass" class="hack-input" autocomplete="off">
+            </div>
+        </div>
+        <div class="modalBottom">
+            <div class="status-area" id="hackStatus">Waiting...</div>
+            <button onclick="closeTerminal()">Cancel</button>
+            <button class="primary" onclick="executeHack()">Login</button>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>
