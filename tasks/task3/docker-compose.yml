@@ -3,7 +3,7 @@ version: '3.8'
 services:
   task3-xss:
     build: .
-    container_name: task3_poisoned_apple
+    container_name: task3
     ports:
       - "8080:8080"
     environment:

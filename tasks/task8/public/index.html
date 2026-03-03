@@ -6,12 +6,10 @@
     <title>Castle Staff Directory — SQLi Lab</title>
     <link rel="stylesheet" href="/admin.css" />
     <style>
-        /* Стилізація рівнів доступу */
         .stars { font-weight: 800; letter-spacing: 2px; font-family: ui-monospace, monospace; }
-        .lvl-1 { color: #86efac; } /* Green */
-        .lvl-2 { color: #facc15; } /* Yellow */
-        .lvl-3 { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); } /* Red Glow */
-
+        .lvl-1 { color: #86efac; }
+        .lvl-2 { color: #facc15; }
+        .lvl-3 { color: #ef4444; text-shadow: 0 0 10px rgba(239, 68, 68, 0.5); }
         .legend {
             font-size: 12px;
             color: #94a3b8;
@@ -21,7 +19,6 @@
             border-radius: 8px;
             border: 1px dashed rgba(255,255,255,0.1);
         }
-
         .hl-keyword { color: #c084fc; }
         .hl-string { color: #86efac; }
     </style>
@@ -99,6 +96,23 @@
             <pre class="pre preTall" id="resp">—</pre>
         </div>
     </div>
+
+    <!-- NEW: submit flag -->
+    <div class="result" id="flagWrap">
+        <div class="resultHeader">
+            <div class="resultTitle">Submit flag</div>
+        </div>
+
+        <div class="field">
+            <label for="flagIn">Прапор</label>
+            <input id="flagIn" autocomplete="off" placeholder="FLAG{...}" />
+        </div>
+
+        <div class="modalBottom" style="border-top:0; padding:12px 0 0;">
+            <div class="status" id="flagStatus">—</div>
+            <button class="btn primary" id="flagBtn" type="button">Submit</button>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -113,6 +127,10 @@
     const tableBody = document.getElementById("tableBody");
     const copyBtn = document.getElementById("copyBtn");
 
+    const flagIn = document.getElementById("flagIn");
+    const flagBtn = document.getElementById("flagBtn");
+    const flagStatus = document.getElementById("flagStatus");
+
     let lastJson = "";
 
     function escapeHtml(text) {
@@ -125,7 +143,6 @@
             .replace(/'/g, "&#039;");
     }
 
-    // Живе оновлення SQL прев'ю
     function updateSQLPreview() {
         const v = searchIn.value;
         const idx = v.indexOf("--");
@@ -155,13 +172,13 @@
             else if (s.includes('*')) starClass += ' lvl-1';
 
             return `
-              <tr>
-                <td>${escapeHtml(r.id)}</td>
-                <td><strong>${escapeHtml(r.full_name)}</strong></td>
-                <td>${escapeHtml(r.position)}</td>
-                <td class="${starClass}">${escapeHtml(r.security_stars)}</td>
-              </tr>
-            `;
+        <tr>
+          <td>${escapeHtml(r.id)}</td>
+          <td><strong>${escapeHtml(r.full_name)}</strong></td>
+          <td>${escapeHtml(r.position)}</td>
+          <td class="${starClass}">${escapeHtml(r.security_stars)}</td>
+        </tr>
+      `;
         }).join("");
     }
 
@@ -193,16 +210,40 @@
             statusEl.textContent = `FOUND: ${(data.rows || []).length}`;
             renderTable(data.rows);
 
-            // Великоднє яйце для прапора
             if (lastJson.includes("FLAG{")) {
                 statusEl.textContent = "MISSION ACCOMPLISHED";
-                console.log("%c FLAG FOUND! ", "background: #22c55e; color: #000; font-weight: bold;");
             }
-
-        } catch (e) {
+        } catch {
             statusEl.className = "status error";
             statusEl.textContent = "Network error";
             tableBody.innerHTML = `<tr><td colspan="4">Could not connect to server.</td></tr>`;
+        }
+    }
+
+    async function submitFlag() {
+        const flag = (flagIn.value || "").trim();
+        flagStatus.className = "status";
+        flagStatus.textContent = "Submitting…";
+
+        try {
+            const r = await fetch("/api/submit-flag", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ flag })
+            });
+
+            const data = await r.json();
+            if (data.ok) {
+                flagStatus.className = "status success";
+                flagStatus.textContent = data.message || "FLAG ACCEPTED";
+                return;
+            }
+
+            flagStatus.className = "status error";
+            flagStatus.textContent = data.message || data.error || "WRONG FLAG";
+        } catch {
+            flagStatus.className = "status error";
+            flagStatus.textContent = "Network error";
         }
     }
 
@@ -215,8 +256,13 @@
 
     searchBtn.addEventListener("click", doSearch);
     clearBtn.addEventListener("click", clearAll);
+    flagBtn.addEventListener("click", submitFlag);
     searchIn.addEventListener("input", updateSQLPreview);
-    window.addEventListener("keydown", (e) => { if (e.key === "Enter") doSearch(); });
+    window.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        if (document.activeElement === flagIn) return submitFlag();
+        return doSearch();
+    });
 
     updateSQLPreview();
     searchIn.focus();

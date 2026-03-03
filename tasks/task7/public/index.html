@@ -54,6 +54,17 @@
             <div class="label">JSON</div>
             <pre class="pre preTall" id="resp">—</pre>
         </div>
+
+        <div class="block" id="flagBlock" hidden>
+            <div class="label">Перевірка флага</div>
+
+            <div class="flagRow">
+                <input id="flagInput" class="flagInput" autocomplete="off" placeholder="FLAG{...}" />
+                <button class="btn tiny" id="flagBtn" type="button">Verify</button>
+            </div>
+
+            <div class="flagStatus" id="flagStatus">—</div>
+        </div>
     </div>
 </div>
 
@@ -70,6 +81,11 @@
     const respEl = document.getElementById("resp");
     const backendSqlEl = document.getElementById("backendSql");
     const copyBtn = document.getElementById("copyBtn");
+
+    const flagBlock = document.getElementById("flagBlock");
+    const flagInput = document.getElementById("flagInput");
+    const flagBtn = document.getElementById("flagBtn");
+    const flagStatus = document.getElementById("flagStatus");
 
     let lastJson = "";
 
@@ -90,7 +106,6 @@
         const safeP = escapeHtml(pp);
         const safeU = escapeHtml(uu);
 
-        // Base query parts (for preview only)
         const before =
             `SELECT id, username, role FROM users\n` +
             `WHERE username = '`;
@@ -100,13 +115,11 @@
             `LIMIT 1`;
 
         // If username contains "--", treat everything after it as a SQL line comment
-        // and make the rest of the query look commented out (as in real SQL).
         const idx = uu.indexOf("--");
         if (idx !== -1) {
             const left = escapeHtml(uu.slice(0, idx));
             const right = escapeHtml(uu.slice(idx + 2));
 
-            // Show: username = '<UNDERLINED left>--<COMMENT right>'  [and then comment out the rest of query]
             sqlPreview.innerHTML =
                 before +
                 `<span class="hl-val">${left}</span>` +
@@ -115,7 +128,6 @@
             return;
         }
 
-        // Normal preview (underline username + password)
         sqlPreview.innerHTML =
             before +
             `<span class="hl-val">${safeU}</span>` +
@@ -129,6 +141,9 @@
         resultWrap.hidden = false;
         respEl.textContent = "Loading…";
         backendSqlEl.textContent = "Loading…";
+        flagBlock.hidden = true;
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "—";
 
         try {
             const r = await fetch("/api/login", {
@@ -146,9 +161,11 @@
             if (data.ok) {
                 statusEl.className = "status success";
                 statusEl.textContent = "ACCESS GRANTED";
+                flagBlock.hidden = false;
             } else {
                 statusEl.className = "status error";
                 statusEl.textContent = "ACCESS DENIED";
+                flagBlock.hidden = true;
             }
         } catch (e) {
             statusEl.className = "status error";
@@ -156,6 +173,33 @@
             lastJson = String(e);
             respEl.textContent = lastJson;
             backendSqlEl.textContent = "—";
+            flagBlock.hidden = true;
+        }
+    }
+
+    async function verifyFlag() {
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "Checking…";
+
+        try {
+            const r = await fetch("/api/verify-flag", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ flag: flagInput.value })
+            });
+
+            const data = await r.json();
+
+            if (data.ok) {
+                flagStatus.className = "flagStatus ok";
+                flagStatus.textContent = "FLAG ACCEPTED";
+            } else {
+                flagStatus.className = "flagStatus bad";
+                flagStatus.textContent = "WRONG FLAG";
+            }
+        } catch (e) {
+            flagStatus.className = "flagStatus bad";
+            flagStatus.textContent = "Server error";
         }
     }
 
@@ -165,15 +209,23 @@
         statusEl.className = "status";
         statusEl.textContent = "Waiting…";
         updateSQLPreview();
+
         resultWrap.hidden = true;
         respEl.textContent = "—";
         backendSqlEl.textContent = "—";
         lastJson = "";
+
+        flagBlock.hidden = true;
+        flagInput.value = "";
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "—";
+
         u.focus();
     }
 
     loginBtn.addEventListener("click", doLogin);
     clearBtn.addEventListener("click", clearAll);
+    flagBtn.addEventListener("click", verifyFlag);
 
     copyBtn.addEventListener("click", async () => {
         try {

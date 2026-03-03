@@ -1,9 +1,9 @@
 services:
   task10:
     build: .
-    container_name: castlesec-task10
+    container_name: task10
     ports:
-      - "8010:8080"
+      - "8080:8080"
     environment:
       - NODE_ENV=production
       - TASK10_PASSWORD=FLAG{echo_in_the_well}

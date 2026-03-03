@@ -1,6 +1,7 @@
 version: '3.8'
 services:
   postal-tower:
+    container_name: task5
     build: .
     ports:
       - "8080:8080"

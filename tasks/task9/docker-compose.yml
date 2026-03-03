@@ -1,9 +1,9 @@
 services:
   t9-library:
     build: .
-    container_name: castlesec_t9_library
+    container_name: task9
     ports:
-      - "18009:8080"
+      - "8080:8080"
     environment:
       - PORT=8080
       - BASE_DIR=/data/keep/west_tower/library/scriptorium

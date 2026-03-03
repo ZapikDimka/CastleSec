@@ -16,7 +16,7 @@
 ```bash
 docker compose up --build
 ```
-http://localhost:18009
+http://localhost:8080
 
 
 ## Variant A (баланс)

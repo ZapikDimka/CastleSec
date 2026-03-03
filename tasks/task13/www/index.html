@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CastleSec / Task13 — Коронація</title>
+    <style>
+        body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;margin:0;background:#0b0f17;color:#e6edf3}
+        header{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,.08);display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+        header h1{font-size:16px;margin:0;font-weight:600}
+        header .hint{opacity:.85;font-size:13px}
+        main{padding:16px 20px;display:grid;gap:14px}
+        .card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;overflow:hidden}
+        .terminal{height:70vh;min-height:420px}
+        iframe{width:100%;height:100%;border:0;background:#000}
+        .flagbox{display:flex;gap:10px;flex-wrap:wrap;padding:14px}
+        input{flex:1;min-width:260px;padding:10px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#0f1623;color:#e6edf3}
+        button{padding:10px 14px;border-radius:8px;border:1px solid rgba(255,255,255,.14);background:#14233a;color:#e6edf3;cursor:pointer}
+        button:hover{filter:brightness(1.06)}
+        .msg{padding:0 14px 14px 14px;font-size:13px;opacity:.9}
+        .ok{color:#7ee787}
+        .bad{color:#ff7b72}
+    </style>
+</head>
+<body>
+<header>
+    <h1>👑 CastleSec / T13 — «Коронація»</h1>
+    <div class="hint">Підказка: <code>cat ~/tower_note.txt</code> та <code>/etc/cron.*</code></div>
+</header>
+
+<main>
+    <section class="card terminal" aria-label="terminal">
+        <iframe src="/term/" title="Web Terminal"></iframe>
+    </section>
+
+    <section class="card" aria-label="flag-submit">
+        <div class="flagbox">
+            <input id="flag" placeholder="Введи флаг (наприклад: CASTLESEC{...})" autocomplete="off" />
+            <button id="submit">Перевірити</button>
+        </div>
+        <div class="msg" id="msg"></div>
+    </section>
+</main>
+
+<script>
+    const $flag = document.getElementById('flag');
+    const $msg = document.getElementById('msg');
+
+    function setMsg(text, ok){
+        $msg.textContent = text;
+        $msg.className = 'msg ' + (ok ? 'ok' : 'bad');
+    }
+
+    async function checkFlag(){
+        const flag = ($flag.value || '').trim();
+        if(!flag){
+            setMsg('Введи флаг.', false);
+            return;
+        }
+        setMsg('Перевіряю...', true);
+        try{
+            const r = await fetch('/api/check', {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({flag})
+            });
+            const data = await r.json().catch(()=>({ok:false}));
+            if(r.ok && data.ok){
+                setMsg('✅ Вірно. Корона твоя.', true);
+            }else{
+                setMsg('❌ Невірний флаг.', false);
+            }
+        }catch(e){
+            setMsg('Помилка з’єднання з сервером перевірки.', false);
+        }
+    }
+
+    document.getElementById('submit').addEventListener('click', checkFlag);
+    $flag.addEventListener('keydown', (e)=>{ if(e.key === 'Enter') checkFlag(); });
+</script>
+</body>
+</html>

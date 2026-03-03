@@ -16,6 +16,7 @@ services:
       retries: 20
 
   app:
+    container_name: task7
     build: .
     depends_on:
       db:

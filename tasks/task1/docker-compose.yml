@@ -3,7 +3,7 @@ version: '3.8'
 services:
   task1_inscription:
     build: .
-    container_name: castle_task1_recon
+    container_name: task1
     ports:
       - "8080:80"
     networks:

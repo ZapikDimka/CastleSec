@@ -1,7 +1,7 @@
 services:
   task13:
     build: .
-    container_name: castlesec_task13
+    container_name: task13
     ports:
-      - "127.0.0.1:18013:7681"
+      - "8080:8080"
     restart: unless-stopped

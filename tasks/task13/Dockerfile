@@ -25,11 +25,15 @@ ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     bash ca-certificates login cron \
     coreutils findutils grep sed less procps \
+    python3 nginx \
     libwebsockets17 libwebsockets-evlib-uv \
     libjson-c5 libssl3 zlib1g libuv1 \
  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /out/ttyd /usr/local/bin/ttyd
+
+# disable default nginx site (we use our own :8080)
+RUN rm -f /etc/nginx/sites-enabled/default || true
 
 # Officer user
 RUN useradd -m -s /bin/bash sir_lancelot
@@ -51,7 +55,7 @@ RUN mkdir -p /opt/clocktower && \
     chown root:clock /opt/clocktower/winder.sh && \
     chmod 775 /opt/clocktower/winder.sh
 
-# Root runner (cron executes this as root) — FIX: tick must be computed at runtime
+# Root runner (cron executes this as root)
 RUN printf "%s\n" \
   "#!/usr/bin/env bash" \
   "set -e" \
@@ -71,10 +75,9 @@ RUN printf "%s\n" \
 
 RUN touch /var/log/king_winder.log && chmod 0644 /var/log/king_winder.log
 
-# In-world hint note (copied as separate file below)
+# In-world hint note
 COPY tower_note.txt /home/sir_lancelot/tower_note.txt
-RUN chown sir_lancelot:sir_lancelot /home/sir_lancelot/tower_note.txt && \
-    chmod 0644 /home/sir_lancelot/tower_note.txt
+RUN chown sir_lancelot:sir_lancelot /home/sir_lancelot/tower_note.txt && chmod 0644 /home/sir_lancelot/tower_note.txt
 
 # Officer shell banner
 COPY bashrc_officer /home/sir_lancelot/.bashrc
@@ -85,8 +88,14 @@ RUN printf "%s\n" \
   > /home/sir_lancelot/.bash_profile && \
   chown sir_lancelot:sir_lancelot /home/sir_lancelot/.bash_profile
 
+# UI + nginx + flagcheck
+COPY www/index.html /var/www/html/index.html
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+COPY flagcheck.py /opt/flagcheck.py
+RUN chmod 755 /opt/flagcheck.py
+
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod 755 /usr/local/bin/entrypoint.sh
 
-EXPOSE 7681
+EXPOSE 8080
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]

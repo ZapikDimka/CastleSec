@@ -15,13 +15,15 @@ services:
       timeout: 3s
       retries: 30
 
-  app:
+  task8:
     build: .
+    container_name: task8
     depends_on:
       db:
         condition: service_healthy
     environment:
       PORT: "8080"
+      FLAG: "FLAG{FULL_N4ME_UN1ON_M4ST3R}"
       PGHOST: db
       PGPORT: "5432"
       PGDATABASE: castle

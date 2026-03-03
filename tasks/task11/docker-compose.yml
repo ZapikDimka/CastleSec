@@ -1,9 +1,10 @@
+# docker-compose.yml
 services:
-  engineering-terminal:
+  task11:
     build: .
-    container_name: ctf_bash_cgi
+    container_name: task11
     ports:
-      - "8080:80"
+      - "8080:8080"
     restart: unless-stopped
     environment:
       - TZ=Europe/Kyiv
