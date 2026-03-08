@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Literal, Self, Any, Optional
 
@@ -11,106 +12,41 @@ class TypeTag(StrEnum):
     LIST = "list"
     STRUCT = "struct"
 
+@dataclass(frozen=True)
 class Type:
-    _tag: TypeTag
+    tag: TypeTag
 
     @classmethod
     def of(cls, value: Literal["null", "string", "bool"]) -> Self:
-        ty = cls()
-        ty._tag = TypeTag(value)
-        return ty
-
-    @property
-    def tag(self) -> TypeTag:
-        return self._tag
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Type):
-            return False
-
-        return self.tag == other.tag
-
-    def __hash__(self) -> int:
-        return hash(self.tag)
+        return cls(TypeTag(value))
 
     def __str__(self):
-        return f"Atom<{self._tag}>"
+        return f"Atom<{self.tag.value}>"
 
 
+@dataclass(frozen=True)
 class StructType(Type):
-    def __init__(self, name: str, schema: dict[str, Type], base: Optional[Self] = None):
-        self._tag = TypeTag.STRUCT
-        self._name = name
-        self._schema = schema
-        self._base = base
+    name: str
+    schema: dict[str, Type] = field(hash=False)
+    base: Optional[Self] = field(default=None, hash=False)
 
-    @property
-    def name(self) -> str:
-        return self._name
+    tag: TypeTag = field(default=TypeTag.STRUCT, init=False)
 
-    @property
-    def schema(self) -> dict[str, Type]:
-        return self._schema
-
-    @property
-    def base(self) -> Optional[Self]:
-        return self._base
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, StructType):
-            return False
-
-        return self.schema == other.schema
-
-    def __hash__(self) -> int:
-        return hash(self.name)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return f"Struct<{self.name}>"
 
-
+@dataclass(frozen=True)
 class RefType(Type):
-    _target_type: StructType
-
-    def __init__(self, target_type: StructType):
-        self._tag = TypeTag.REF
-        self._target_type = target_type
-
-    @property
-    def target_type(self) -> StructType:
-        return self._target_type
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, RefType):
-            return False
-
-        return self.target_type == other.target_type
-
-    def __hash__(self) -> int:
-        return hash(self.target_type)
+    target_type: StructType
+    tag: TypeTag = field(default=TypeTag.REF, init=False)
 
     def __str__(self):
         return f"Ref<{self.target_type.name}>"
 
+@dataclass(frozen=True)
 class ListType(Type):
-    _item_type: Type
+    item_type: Type
+    tag: TypeTag = field(default=TypeTag.LIST, init=False)
 
-    def __init__(self, item_type: Type):
-        self._tag = TypeTag.LIST
-        self._item_type = item_type
-
-    @property
-    def item_type(self) -> Type:
-        return self._item_type
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ListType):
-            return False
-
-        return self.item_type == other.item_type
-
-    def __hash__(self) -> int:
-        return hash(self.item_type)
-
-    def __str__(self):
+    def __str__(self) -> str:
         return f"List<{self.item_type}>"

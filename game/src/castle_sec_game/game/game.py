@@ -16,6 +16,7 @@ class Game:
         self._state = GAME_STATE.new({
             "current_map": self._game_data.as_struct()["root"],
         })
+        #self._state["prev_node"] = RefObject.of_null(NODE, ctx)
         self._state["current_node"] = self._state["current_map"].as_ref_v()["root"]
         self._state["inventory"] = INVENTORY.new({
             "items": ListObject(RefType(ITEM), [])
@@ -49,6 +50,8 @@ class Game:
 
     def _run_function(self, function: Struct):
         match function.type.name:
+            #case RETURN_FUNCTION.name:
+
             case MOVE_FUNCTION.name:
                 self._state["current_node"] = function["to"]
             case SET_VARIABLE_FUNCTION.name:

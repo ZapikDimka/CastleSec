@@ -65,6 +65,7 @@ GAME_DATA = def_struct("GameData", {
 GAME_STATE = def_struct("GameState", {
     "current_map": RefType(MAP),
     "current_node": RefType(NODE),
+    "prev_node": RefType(NODE),
     "inventory": INVENTORY
 })
 
