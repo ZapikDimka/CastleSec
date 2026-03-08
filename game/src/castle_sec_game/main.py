@@ -1,41 +1,16 @@
 import asyncio
 import logging
+import json
+import re
+import textwrap
 
-from castle_sec_game.action import Action
-from castle_sec_game.file import FileReader
-from castle_sec_game.game import Game
+from castle_sec_game.game.game import Game
+
+BOLD, CYAN, YELLOW, GREEN, RESET = "\033[1m", "\033[96m", "\033[93m", "\033[92m", "\033[0m"
 
 
 async def ainput(prompt: str = "") -> str:
     return await asyncio.to_thread(input, prompt)
-
-async def select_action(game: Game) -> Action | None:
-    actions = game.actions
-
-    index_str = await ainput()
-    if game.is_solving_task:
-        return None
-
-    try:
-        index = int(index_str)
-    except ValueError:
-        print("Invalid input")
-        return None
-
-    if index < 0 or index >= len(actions):
-        print("Invalid input")
-        return None
-
-    return actions[index]
-
-
-BOLD = "\033[1m"
-CYAN = "\033[96m"
-YELLOW = "\033[93m"
-GREEN = "\033[92m"
-RESET = "\033[0m"
-
-import re
 
 
 def clean_len(s):
@@ -43,42 +18,75 @@ def clean_len(s):
 
 
 def draw_line(content, width, border_color=CYAN):
-    padding = width - 4 - clean_len(content)
+    # max(0, ...) ensures padding never goes negative if a single unbroken word exceeds width
+    padding = max(0, width - 4 - clean_len(content))
     return f"{BOLD}{border_color}║{RESET} {content}{' ' * padding} {BOLD}{border_color}║{RESET}"
 
 
 def display_node(game: Game):
-    node = game.current_node
-    actions = game.actions
+    node = game.get_current_node()
+    actions = node["actions"].as_list().items
     inventory = game.inventory
 
     g_width = 52
     i_width = 25
+    content_width = g_width - 4
 
-    left = [f"{BOLD}{CYAN}╔═{'═' * (g_width - 4)}═╗{RESET}", draw_line(node.name.center(g_width - 4), g_width),
-            f"{BOLD}{CYAN}╠═{'═' * (g_width - 4)}═╣{RESET}", draw_line(node.text, g_width), draw_line("", g_width)]
+    node_name = node["name"].as_str()
+    node_text = node["text"].as_str()
+
+    left = [f"{BOLD}{CYAN}╔═{'═' * content_width}═╗{RESET}"]
+
+    # Wrap node name (just in case it's huge)
+    for line in textwrap.wrap(node_name, content_width):
+        left.append(draw_line(line.center(content_width), g_width))
+
+    left.append(f"{BOLD}{CYAN}╠═{'═' * content_width}═╣{RESET}")
+
+    # Wrap main node text safely
+    for line in textwrap.wrap(node_text, content_width):
+        left.append(draw_line(line, g_width))
+
+    left.append(draw_line("", g_width))
 
     if game.is_solving_task:
         left.append(draw_line(f"{YELLOW}Solving task...{RESET}", g_width))
     else:
         left.append(draw_line(f"{BOLD}{YELLOW}Available Actions:{RESET}", g_width))
         for i, action in enumerate(actions):
-            left.append(draw_line(f"{GREEN}[{i}]{RESET} {action.text}", g_width))
+            label = action.as_composite()["label"].as_str()
+            prefix = f"[{i}] "
+            prefix_len = len(prefix)
+
+            # Wrap the action text, accounting for the width of the "[X] " prefix
+            wrapped_action = textwrap.wrap(label, content_width - prefix_len)
+
+            if not wrapped_action:
+                continue
+
+            # First line gets the colored prefix
+            left.append(draw_line(f"{GREEN}[{i}]{RESET} {wrapped_action[0]}", g_width))
+
+            # Subsequent lines are indented to match the text
+            for line in wrapped_action[1:]:
+                left.append(draw_line(f"{' ' * prefix_len}{line}", g_width))
 
     while len(left) < 10:
         left.append(draw_line("", g_width))
-    left.append(f"{BOLD}{CYAN}╚═{'═' * (g_width - 4)}═╝{RESET}")
+    left.append(f"{BOLD}{CYAN}╚═{'═' * content_width}═╝{RESET}")
 
-    right = [f"{BOLD}{YELLOW}╔═{'═' * (i_width - 4)}═╗{RESET}", f"{BOLD}{YELLOW}║{'INVENTORY'.center(i_width - 2)}║{RESET}",
+    right = [f"{BOLD}{YELLOW}╔═{'═' * (i_width - 4)}═╗{RESET}",
+             f"{BOLD}{YELLOW}║{'INVENTORY'.center(i_width - 2)}║{RESET}",
              f"{BOLD}{YELLOW}╠═{'═' * (i_width - 4)}═╣{RESET}"]
 
     if not inventory:
         right.append(f"{BOLD}{YELLOW}║{RESET} {'(empty)'.center(i_width - 4)} {BOLD}{YELLOW}║{RESET}")
     else:
-        for item in inventory:
-            name = item.name if hasattr(item, 'name') else str(item)
-            item_line = name[:i_width - 4].center(i_width - 4)
-            right.append(f"{BOLD}{YELLOW}║{RESET} {item_line} {BOLD}{YELLOW}║{RESET}")
+        for item_name in inventory:
+            # Wrap inventory items to prevent breaking the right panel
+            for line in textwrap.wrap(item_name, i_width - 4):
+                item_line = line.center(i_width - 4)
+                right.append(f"{BOLD}{YELLOW}║{RESET} {item_line} {BOLD}{YELLOW}║{RESET}")
 
     right.append(f"{BOLD}{YELLOW}╚═{'═' * (i_width - 4)}═╝{RESET}")
 
@@ -89,33 +97,57 @@ def display_node(game: Game):
         gap = "  "
         print(f"{l_row}{' ' * (g_width - clean_len(l_row))}{gap}{r_row}")
 
-async def run_game():
-    '''
-    node_a = MapNode(name="A", text="Node A", actions=[ReturnActionArchetype(), PickUpItemActionArchetype(item=InventoryItem("Dog Shit"))])
-    node_b = MapNode(name="B", text="Node B", actions=[ReturnActionArchetype(), SolveTaskActionArchetype()])
-    root_node = MapNode(name="Root", text="You see something!", actions=[
-        ReturnActionArchetype(),
-        MoveActionArchetype(node_a),
-        MoveActionArchetype(node_b)
-    ])
-    '''
-    reader = FileReader("test_map.json", "assets", "../tasks")
-    root_node = reader.read_file()
 
-    game = Game(root_node)
+async def select_action(game: Game) -> int | None:
+    actions = game.get_current_node()["actions"].as_list().items
+
+    index_str = await ainput("\n> ")
+    if game.is_solving_task:
+        return None
+
+    try:
+        index = int(index_str)
+    except ValueError:
+        return None
+
+    if index < 0 or index >= len(actions):
+        return None
+
+    return index
+
+
+def clear_terminal():
+    print("\033[H\033[J", end="")
+
+
+async def run_game():
+    with open("test_map.json", "r") as f:
+        raw_map_data = json.load(f)
+
+    # TODO
+    game = Game(raw_map_data, available_images=set(), available_tasks=set())
+
+    clear_terminal()
+
     while True:
         display_node(game)
-        action = await select_action(game)
-        game.act(action)
+        action_index = await select_action(game)
+        if action_index is not None:
+            clear_terminal()
+            game.act(action_index)
+        else:
+            clear_terminal()
+            print(f"{YELLOW}Invalid input, try again.{RESET}")
         await asyncio.sleep(0)
+
 
 def main():
     logging.basicConfig(level=logging.DEBUG)
-
     try:
         asyncio.run(run_game())
     except KeyboardInterrupt:
         pass
 
+
 if __name__ == "__main__":
-   main()
+    main()

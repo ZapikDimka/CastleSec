@@ -1,80 +1,36 @@
 {
-  "items": {
-    "ITEM_dog_shit": {
-      "name": "Dog Shit",
-      "image": "item_icon_placeholder.png"
-    },
-    "ITEM_key": {
-      "name": "Key",
-      "image": "item_icon_placeholder.png"
-    },
-    "ITEM_golden_loaf": {
-      "name": "Golden Loaf",
-      "image": "item_icon_placeholder.png"
-    }
-  },
-  "root": "NODE_root",
-  "nodes": {
-    "NODE_root": {
-      "name": "Root Node",
-      "text": "You see a root.",
-      "image": "img1.png",
-      "actions": [
+    "starting_node": "cell_01",
+    "nodes": [
         {
-          "type": "return"
+            "id": "cell_01",
+            "name": "Dungeon Cell",
+            "text": "You are in a damp cell.",
+            "actions": [
+                {
+                    "type": "SetVariableAction",
+                    "label": "Kick the door open",
+                    "target_node_id": "cell_01",
+                    "variable_name": "text",
+                    "new_value": "You are in a damp cell. The iron door is broken off its hinges."
+                },
+                {
+                    "type": "MoveAction",
+                    "label": "Walk through the door",
+                    "to": "hallway_01"
+                }
+            ]
         },
         {
-          "type": "move",
-          "to": "NODE_a"
-        },
-        {
-          "type": "move",
-          "to": "NODE_b"
-        },
-        {
-          "type": "solve_task",
-          "name": "test"
+            "id": "hallway_01",
+            "name": "Dark Hallway",
+            "text": "It is too dark to see anything.",
+            "actions": [
+                {
+                    "type": "MoveAction",
+                    "label": "Go back to the cell",
+                    "to": "cell_01"
+                }
+            ]
         }
-      ]
-    },
-    "NODE_a": {
-      "name": "A Node",
-      "text": "Hello, Leatherman",
-      "image": "img2.png",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_key"
-        }
-      ]
-    },
-    "NODE_b": {
-      "name": "B Node",
-      "text": "You encounter node B",
-      "image": "img3.png",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_dog_shit"
-        },
-        {
-          "type": "if",
-          "condition": {
-            "type": "has_item",
-            "item": "ITEM_dog_shit"
-          },
-          "action": {
-            "type": "move",
-            "to": "NODE_a"
-          }
-        }
-      ]
-    }
-  }
+    ]
 }
