@@ -32,8 +32,8 @@ def display_node(game: Game):
     i_width = 25
     content_width = g_width - 4
 
-    node_name = node["name"].as_str()
-    node_text = node["text"].as_str()
+    node_name = node.name
+    node_text = node.text
 
     left = [f"{BOLD}{CYAN}╔═{'═' * content_width}═╗{RESET}"]
 
@@ -54,7 +54,7 @@ def display_node(game: Game):
     else:
         left.append(draw_line(f"{BOLD}{YELLOW}Available Actions:{RESET}", g_width))
         for i, action in enumerate(actions):
-            label = action.as_struct()["label"].as_str()
+            label = action.label
             prefix = f"[{i}] "
             prefix_len = len(prefix)
 
@@ -99,7 +99,7 @@ def display_node(game: Game):
 
 
 async def select_action(game: Game) -> int | None:
-    actions = game.get_current_node()["actions"].as_list().items
+    actions = game.get_actions()
 
     index_str = await ainput("\n> ")
     if game.is_solving_task:

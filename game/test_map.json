@@ -2,7 +2,8 @@
   "items": [
     {
       "id": "dog_shit",
-      "name": "Dog Shit"
+      "name": "Dog Shit",
+      "image": "item_icon_placeholder.png"
     }
   ],
   "root": "MainMap",
@@ -15,6 +16,7 @@
           "id": "cell_01",
           "name": "Dungeon Cell",
           "text": "You are in a damp cell.",
+          "image": "img1.png",
           "actions": [
             {
               "label": "Pick up",
@@ -32,7 +34,7 @@
                 {
                   "type": "SetVariableFunction",
                   "target_node": "cell_01",
-                  "variable_name": "text",
+                  "variable": "text",
                   "value": "You are in a damp cell. The iron door is broken off its hinges."
                 }
               ]
@@ -62,6 +64,7 @@
           "id": "hallway_01",
           "name": "Dark Hallway",
           "text": "It is too dark to see anything.",
+          "image": "img2.png",
           "actions": [
             {
               "label": "Go back to the cell",
@@ -78,6 +81,7 @@
           "id": "room_01",
           "name": "Some Room",
           "text": "Some room text",
+          "image": "img3.png",
           "actions": [
             {
               "label": "Go back to the cell",

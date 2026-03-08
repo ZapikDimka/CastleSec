@@ -1,52 +1,80 @@
-from dataclasses import dataclass, field
-from enum import StrEnum
-from typing import Literal, Self, Any, Optional
+from typing import Literal, Annotated, Union, Optional
+from pydantic import BaseModel, Field, PrivateAttr, RootModel
 
+from castle_sec_game.game.context import Context
 
-class TypeTag(StrEnum):
-    NULL = "null"
-    STRING = "string"
-    BOOL = "bool"
+class Ref[T](RootModel[T]):
+    root: str
+    _resolved_target: Optional[T] = PrivateAttr(default=None)
 
-    REF = "ref"
-    LIST = "list"
-    STRUCT = "struct"
+    @property
+    def ref_id(self) -> str:
+        return self.root
 
-@dataclass(frozen=True)
-class Type:
-    tag: TypeTag
+    def resolve(self, ctx: Context) -> T:
+        if self._resolved_target is None:
+            self._resolved_target = ctx.get_object(self.ref_id)
+        return self._resolved_target
 
-    @classmethod
-    def of(cls, value: Literal["null", "string", "bool"]) -> Self:
-        return cls(TypeTag(value))
+class Asset(BaseModel):
+    path: str
 
-    def __str__(self):
-        return f"Atom<{self.tag.value}>"
+class Task(BaseModel):
+    path: str
 
-
-@dataclass(frozen=True)
-class StructType(Type):
+class Item(BaseModel):
+    id: str
     name: str
-    schema: dict[str, Type] = field(hash=False)
-    base: Optional[Self] = field(default=None, hash=False)
+    image: Ref[Asset]
 
-    tag: TypeTag = field(default=TypeTag.STRUCT, init=False)
+class Node(BaseModel):
+    id: str
+    name: str
+    text: str
+    image: Ref[Asset]
+    actions: list["Action"]
 
-    def __str__(self) -> str:
-        return f"Struct<{self.name}>"
+class Map(BaseModel):
+    id: str
+    root: Ref[Node]
+    nodes: list[Node]
 
-@dataclass(frozen=True)
-class RefType(Type):
-    target_type: StructType
-    tag: TypeTag = field(default=TypeTag.REF, init=False)
+class Inventory(BaseModel):
+    items: list[Ref[Item]]
 
-    def __str__(self):
-        return f"Ref<{self.target_type.name}>"
+class GameData(BaseModel):
+    items: list[Item]
+    root: Ref[Map]
+    maps: list[Map]
 
-@dataclass(frozen=True)
-class ListType(Type):
-    item_type: Type
-    tag: TypeTag = field(default=TypeTag.LIST, init=False)
+class GameState(BaseModel):
+    current_map: Ref[Map]
+    current_node: Ref[Node]
+    prev_node: Optional[Ref[Node]] = None
+    inventory: Inventory
 
-    def __str__(self) -> str:
-        return f"List<{self.item_type}>"
+class BaseFunction(BaseModel):
+    pass
+
+class MoveFunction(BaseFunction):
+    type: Literal["MoveFunction"] = "MoveFunction"
+    to: Ref[Node]
+
+class PickUpItemFunction(BaseFunction):
+    type: Literal["PickUpItemFunction"] = "PickUpItemFunction"
+    item: Ref[Item]
+
+class SetVariableFunction(BaseFunction):
+    type: Literal["SetVariableFunction"] = "SetVariableFunction"
+    target_node: Optional[Ref[Node]] = None
+    variable: str
+    value: str
+
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetVariableFunction], Field(discriminator="type")]
+
+class Action(BaseModel):
+    label: str
+    functions: list[FunctionType]
+    once: Optional[bool] = None
+
+Node.model_rebuild()
