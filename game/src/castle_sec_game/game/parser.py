@@ -44,61 +44,57 @@ def _scan_for_ids(data: Any, expected_type: Type, ctx: EngineContext):
 
 
 def _build_objects(data: Any, expected_type: Type, ctx: EngineContext) -> Object:
-    if expected_type.tag in (TypeTag.STRING):
+    if expected_type.tag == TypeTag.STRING:
         val = str(data) if data is not None else ""
-        return Atom(val, expected_type)  # <--- Pass the type in!
+        return Atom(val, expected_type)
 
-        # 2. References
-    if isinstance(expected_type, RefType):
-        val = str(data) if data is not None else ""
-        return RefObject(expected_type.target_type, val, ctx)
+    match expected_type:
+        case RefType():
+            val = str(data) if data is not None else ""
+            return RefObject(expected_type.target_type, val, ctx)
+        case ListType():
+            if data is None: data = []
+            if not isinstance(data, list):
+                raise TypeError(f"Expected list for {expected_type.item_type.tag}, got {type(data).__name__}")
 
-    # 3. Parse Lists
-    if isinstance(expected_type, ListType):
-        if data is None: data = []
-        if not isinstance(data, list):
-            raise TypeError(f"Expected list for {expected_type.item_type.tag}, got {type(data).__name__}")
+            items = [_build_objects(raw_item, expected_type.item_type, ctx) for raw_item in data]
+            return ListObject(expected_type.item_type, items)
+        case StructType():
+            if data is None: data = {}
+            if not isinstance(data, dict):
+                raise TypeError(f"Expected dict for '{expected_type.name}', got {type(data).__name__}")
 
-        items = [_build_objects(raw_item, expected_type.item_type, ctx) for raw_item in data]
-        return ListObject(expected_type.item_type, items)
+            actual_type = expected_type
 
-    # 4. Parse Structs
-    if isinstance(expected_type, StructType):
-        if data is None: data = {}
-        if not isinstance(data, dict):
-            raise TypeError(f"Expected dict for '{expected_type.name}', got {type(data).__name__}")
+            # Polymorphism Resolution and Validation
+            if "type" in data:
+                actual_type_name = data["type"]
+                if actual_type_name != expected_type.name:
+                    valid_subtypes = SUBTYPE_REGISTRY.get(expected_type.name, set())
+                    if actual_type_name not in valid_subtypes:
+                        raise TypeError(
+                            f"Load Error: '{actual_type_name}' is not a valid subtype of '{expected_type.name}'.")
 
-        actual_type = expected_type
+                    actual_type = STRUCT_REGISTRY.get(actual_type_name)
+                    if not actual_type:
+                        raise ValueError(f"Load Error: StructType '{actual_type_name}' not found.")
 
-        # Polymorphism Resolution and Validation
-        if "type" in data:
-            actual_type_name = data["type"]
-            if actual_type_name != expected_type.name:
-                valid_subtypes = SUBTYPE_REGISTRY.get(expected_type.name, set())
-                if actual_type_name not in valid_subtypes:
-                    raise TypeError(
-                        f"Load Error: '{actual_type_name}' is not a valid subtype of '{expected_type.name}'.")
+            # Build all children
+            fields = {}
+            for key, field_type in actual_type.schema.items():
+                if key == "type": continue
+                fields[key] = _build_objects(data.get(key), field_type, ctx)
 
-                actual_type = STRUCT_REGISTRY.get(actual_type_name)
-                if not actual_type:
-                    raise ValueError(f"Load Error: StructType '{actual_type_name}' not found.")
+            struct_obj = Struct(actual_type, fields)
 
-        # Build all children
-        fields = {}
-        for key, field_type in actual_type.schema.items():
-            if key == "type": continue
-            fields[key] = _build_objects(data.get(key), field_type, ctx)
+            # Store in Context so RefObject.resolve() works globally
+            obj_id = data.get("id") or data.get("name")
+            if isinstance(obj_id, str):
+                curr_type = actual_type
+                while curr_type:
+                    ctx.store_object(curr_type, obj_id, struct_obj)
+                    curr_type = curr_type.base
 
-        struct_obj = Struct(actual_type, fields)
-
-        # Store in Context so RefObject.resolve() works globally
-        obj_id = data.get("id") or data.get("name")
-        if isinstance(obj_id, str):
-            curr_type = actual_type
-            while curr_type:
-                ctx.store_object(curr_type, obj_id, struct_obj)
-                curr_type = curr_type.base
-
-        return struct_obj
-
-    raise TypeError(f"Unknown Type encountered: {expected_type}")
+            return struct_obj
+        case _:
+            raise TypeError(f"Unknown Type encountered: '{expected_type}'")

@@ -138,8 +138,12 @@ class ListObject(Object):
         return self._items
 
     @property
+    def type(self) -> ListType:
+        return self._type
+
+    @property
     def item_type(self) -> Type:
-        return self._type.item_type
+        return self.type.item_type
 
 
 class RefObject(Object):

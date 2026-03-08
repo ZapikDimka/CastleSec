@@ -32,45 +32,9 @@ class Type:
     def __hash__(self) -> int:
         return hash(self.tag)
 
-class RefType(Type):
-    _target_type: Type
+    def __str__(self):
+        return f"Atom<{self._tag}>"
 
-    def __init__(self, target_type: Type):
-        self._tag = TypeTag.REF
-        self._target_type = target_type
-
-    @property
-    def target_type(self) -> Type:
-        return self._target_type
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, RefType):
-            return False
-
-        return self.target_type == other.target_type
-
-    def __hash__(self) -> int:
-        return hash(self.target_type)
-
-class ListType(Type):
-    _item_type: Type
-
-    def __init__(self, item_type: Type):
-        self._tag = TypeTag.LIST
-        self._item_type = item_type
-
-    @property
-    def item_type(self) -> Type:
-        return self._item_type
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, ListType):
-            return False
-
-        return self.item_type == other.item_type
-
-    def __hash__(self) -> int:
-        return hash(self.item_type)
 
 class StructType(Type):
     def __init__(self, name: str, schema: dict[str, Type], base: Optional[Self] = None):
@@ -99,3 +63,53 @@ class StructType(Type):
 
     def __hash__(self) -> int:
         return hash(self.name)
+
+    def __str__(self):
+        return f"Struct<{self.name}>"
+
+
+class RefType(Type):
+    _target_type: StructType
+
+    def __init__(self, target_type: StructType):
+        self._tag = TypeTag.REF
+        self._target_type = target_type
+
+    @property
+    def target_type(self) -> StructType:
+        return self._target_type
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, RefType):
+            return False
+
+        return self.target_type == other.target_type
+
+    def __hash__(self) -> int:
+        return hash(self.target_type)
+
+    def __str__(self):
+        return f"Ref<{self.target_type.name}>"
+
+class ListType(Type):
+    _item_type: Type
+
+    def __init__(self, item_type: Type):
+        self._tag = TypeTag.LIST
+        self._item_type = item_type
+
+    @property
+    def item_type(self) -> Type:
+        return self._item_type
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, ListType):
+            return False
+
+        return self.item_type == other.item_type
+
+    def __hash__(self) -> int:
+        return hash(self.item_type)
+
+    def __str__(self):
+        return f"List<{self.item_type}>"
