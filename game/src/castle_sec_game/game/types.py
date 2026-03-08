@@ -5,6 +5,7 @@ from typing import Literal, Self, Any, Optional
 class TypeTag(StrEnum):
     NULL = "null"
     STRING = "string"
+    BOOL = "bool"
 
     REF = "ref"
     LIST = "list"
@@ -14,7 +15,7 @@ class Type:
     _tag: TypeTag
 
     @classmethod
-    def of(cls, value: Literal["null", "string"]) -> Self:
+    def of(cls, value: Literal["null", "string", "bool"]) -> Self:
         ty = cls()
         ty._tag = TypeTag(value)
         return ty

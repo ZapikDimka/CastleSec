@@ -1,5 +1,9 @@
 {
   "items": [
+    {
+      "id": "dog_shit",
+      "name": "Dog Shit"
+    }
   ],
   "root": "MainMap",
   "maps": [
@@ -12,6 +16,16 @@
           "name": "Dungeon Cell",
           "text": "You are in a damp cell.",
           "actions": [
+            {
+              "label": "Pick up",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "dog_shit"
+                }
+              ]
+            },
             {
               "label": "Kick the door open",
               "functions": [

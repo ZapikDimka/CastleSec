@@ -37,12 +37,15 @@ class Game:
 
     def act(self, action_index: int):
         node = self.get_current_node()
-        actions = node["actions"].as_list().items
+        actions = node["actions"].as_list_v(ACTION)
 
         action = actions[action_index].as_struct(ACTION)
         functions = action["functions"].as_list_v(FUNCTION)
         for function in functions:
             self._run_function(function)
+
+        if not action["once"].is_null() and action["once"].as_atom_v(bool):
+            actions.pop(action_index)
 
     def _run_function(self, function: Struct):
         match function.type.name:
@@ -52,3 +55,6 @@ class Game:
                 target = function["target_node"].as_ref_v()
                 var_name = function["variable_name"].as_str()
                 target[var_name] = function["value"]
+            case PICK_UP_ITEM_FUNCTION.name:
+                item = function["item"].as_ref()
+                self._state["inventory"].as_struct()["items"].as_list_v(RefType(ITEM)).append(item)

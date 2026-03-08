@@ -28,7 +28,8 @@ FUNCTION = def_struct("Function", {})
 
 ACTION = def_struct("Action", {
     "label": Type.of("string"),
-    "functions": ListType(FUNCTION)
+    "functions": ListType(FUNCTION),
+    "once": Type.of("bool")
 })
 
 ITEM = def_struct("Item", {
@@ -81,7 +82,6 @@ PICK_UP_ITEM_FUNCTION = def_struct("PickUpItemFunction", {
 }, base=FUNCTION)
 
 SET_VARIABLE_FUNCTION = def_struct("SetVariableFunction", {
-    "label": Type.of("string"),
     "target_node": RefType(NODE),
     "variable_name": Type.of("string"),
     "value": Type.of("string")

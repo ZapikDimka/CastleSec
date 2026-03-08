@@ -18,6 +18,9 @@ class Object:
     def null() -> "Atom":
         return Atom.null()
 
+    def is_null(self) -> bool:
+        return self._type.tag == TypeTag.NULL
+
     def as_atom(self, expected_py_type: Optional[type] = None) -> "Atom":
         if not isinstance(self, Atom):
             raise TypeError(f"Expected Atom, got {type(self).__name__}")
@@ -82,6 +85,10 @@ class Atom(Object):
     @staticmethod
     def string(value: str) -> "Atom":
         return Atom(value, Type.of("string"))
+
+    @staticmethod
+    def bool(value: bool) -> "Atom":
+        return Atom(value, Type.of("bool"))
 
     @property
     def value(self) -> Any:

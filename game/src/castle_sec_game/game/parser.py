@@ -47,6 +47,9 @@ def _build_objects(data: Any, expected_type: Type, ctx: EngineContext) -> Object
     if expected_type.tag == TypeTag.STRING:
         val = str(data) if data is not None else ""
         return Atom(val, expected_type)
+    elif expected_type.tag == TypeTag.BOOL:
+        val = bool(data)
+        return Atom(val, expected_type)
 
     match expected_type:
         case RefType():
