@@ -1,53 +1,57 @@
-from castle_sec_game.game.parser import ValidationContext, load_from_json
+from castle_sec_game.game.asset_loader import AssetLoader
+from castle_sec_game.game.parser import load_from_json
 from castle_sec_game.game.objects import *
 from castle_sec_game.game.schemas import *
+from castle_sec_game.game.ctx import EngineContext
 
 
 class Game:
-    def __init__(self, raw_json_map: dict, available_images: set[str], available_tasks: set[str]):
-        valid_nodes = {node["id"] for node in raw_json_map.get("nodes", [])}
-        ctx = ValidationContext(valid_nodes, available_images, available_tasks)
+    def __init__(self, raw_json: dict, images_dir: str, tasks_dir: str):
+        ctx = EngineContext()
 
-        self.map_nodes = {}
-        for node_data in raw_json_map.get("nodes", []):
-            engine_node = load_from_json(node_data, node_schema, ctx)
-            self.map_nodes[engine_node["id"].as_str()] = engine_node
+        # 1. Let the loader crawl the file system and register everything
+        loader = AssetLoader(ctx)
+        loader.load_all(images_dir=images_dir, tasks_dir=tasks_dir)
 
-        starting_node_id = raw_json_map.get("starting_node")
+        # 2. Parse the game map.
+        # If the JSON references "cell.png", it will successfully validate
+        # because the loader just found it and registered it!
+        self._game_data = load_from_json(raw_json, GAME_DATA, ctx)
 
-        self._variables = Variables({
-            "current_node_id": Atom(starting_node_id),
-            "inventory": inventory_schema.instance({
-                "items": ListObject(Type.of("item"), [item_schema.instance({
-                    "name": Atom("Test"),
-                    "image": Atom("TEST")
-                })])
-            })
+        # 3. Initialize State
+        self._state = GAME_STATE.new({
+            "current_map": self._game_data.as_struct()["root"],
+        })
+        self._state["current_node"] = self._state["current_map"].as_ref_v()["root"]
+        self._state["inventory"] = INVENTORY.new({
+            "items": ListObject(ITEM, [
+                ITEM.new({
+                    "name": Atom.string("Test"),
+                    "image": Atom.string("TEST")
+                })
+            ])
         })
 
-    def get_current_node(self) -> Composite:
-        return self.map_nodes[self._variables["current_node_id"].as_str()]
+    def get_current_node(self) -> Struct:
+        return self._state["current_node"].as_ref().resolve()
 
     @property
     def inventory(self) -> list:
-        # Unpacks atoms to standard strings for the UI to read easily
-        return [item.as_composite()["name"].as_str() for item in self._variables["inventory"].as_composite(inventory_schema)["items"].as_list().items]
+        return [item["name"].as_str() for item in self._state["inventory"].as_struct(INVENTORY)["items"].as_list_v(ITEM)]
 
     @property
     def is_solving_task(self) -> bool:
-        return False  # Mocked for UI compatibility
+        return False # TODO
 
     def act(self, action_index: int):
         node = self.get_current_node()
         actions = node["actions"].as_list().items
 
-        action = actions[action_index].as_composite()
-
-        match action.schema.name:
-            case move_action_schema.name:
-                self._variables["current_node_id"] = Atom(action["to"].as_str())
-            case set_variable_action_schema.name:
-                target_id = action["target_node_id"].as_str()
+        action = actions[action_index].as_struct(ACTION)
+        match action.type.name:
+            case MOVE_ACTION.name:
+                self._state["current_node"] = action["to"]
+            case SET_VARIABLE_ACTION.name:
+                target = action["target_node"].as_ref_v()
                 var_name = action["variable_name"].as_str()
-                self.map_nodes[target_id][var_name] = Atom(action["new_value"].as_str())
-
+                target[var_name] = action["value"] # TODO

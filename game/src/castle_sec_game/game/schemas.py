@@ -1,56 +1,84 @@
+from collections import defaultdict
+
 from castle_sec_game.game.types import *
 
-# TODO: One actions contains multiple.. smth
 
-return_action_schema = Schema("ReturnAction", {})
+STRUCT_REGISTRY: dict[str, StructType] = {}
+SUBTYPE_REGISTRY: dict[str, set[str]] = defaultdict(set)
 
-move_action_schema = Schema("MoveAction", {
-    "label": Type.of("string"),
-    "to": RefType(Type.of("node"))
+def def_struct(name: str, schema: dict[str, Type], base: Optional[StructType] = None) -> StructType:
+    struct_type = StructType(name, schema, base)
+    STRUCT_REGISTRY[struct_type.name] = struct_type
+    if base:
+        SUBTYPE_REGISTRY[base.name].add(struct_type.name)
+
+    return struct_type
+
+###
+
+ASSET = def_struct("Asset", {
+    "path": Type.of("string")
 })
 
-pick_up_item_action_schema = Schema("PickUpItemAction", {
-    "item": RefType(Type.of("item"))
+TASK = def_struct("Task", {
+    "path": Type.of("string")
 })
 
-set_variable_action_schema = Schema("SetVariableAction", {
-    "label": Type.of("string"),
-    "target_node_id": Type.of("string"),
-    "variable_name": Type.of("string"),
-    "new_value": Type.of("string")
-})
+ACTION = def_struct("Action", {})
 
-item_schema = Schema("Item", {
+ITEM = def_struct("Item", {
     "name": Type.of("string"),
-    "image": RefType(Type.of("image"))
+    "image": RefType(ASSET)
 })
 
-inventory_schema = Schema("Inventory", {
-    "items": ListType(Type.of("item")),
+INVENTORY = def_struct("Inventory", {
+    "items": ListType(RefType(ITEM)),
 })
 
-node_schema = Schema("Node", {
+NODE = def_struct("Node", {
     "id": Type.of("string"),
     "name": Type.of("string"),
     "text": Type.of("string"),
-    "image": RefType(Type.of("image")),
-    "actions": ListType(Type.of("action")),
+    "image": RefType(ASSET),
+    "actions": ListType(ACTION)
 })
 
-map_schema = Schema("Map", {
+MAP = def_struct("Map", {
     "id": Type.of("string"),
-    "items": ListType(Type.of("item")),
-    "root": RefType(Type.of("node")),
-    "nodes": ListType(Type.of("node"))
+    "items": ListType(ITEM),
+    "root": RefType(NODE),
+    "nodes": ListType(NODE)
 })
 
-game_data_schema = Schema("GameData", {
-    "items": ListType(Type.of("item")),
-    "root": RefType(Type.of("map")),
-    "maps": ListType(Type.of("map"))
+GAME_DATA = def_struct("GameData", {
+    "items": ListType(ITEM),
+    "root": RefType(MAP),
+    "maps": ListType(MAP)
 })
 
-ACTION_SCHEMAS = {
-    "MoveAction": move_action_schema,
-    "SetVariableAction": set_variable_action_schema,
-}
+GAME_STATE = def_struct("GameState", {
+    "current_map": RefType(MAP),
+    "current_node": RefType(NODE),
+    "inventory": INVENTORY
+})
+
+###
+
+RETURN_ACTION = def_struct("ReturnAction", {}, base=ACTION)
+
+MOVE_ACTION = def_struct("MoveAction", {
+    "label": Type.of("string"),
+    "to": RefType(NODE)
+}, base=ACTION)
+
+PICK_UP_ITEM_ACTION = def_struct("PickUpItemAction", {
+    "item": RefType(ITEM)
+}, base=ACTION)
+
+SET_VARIABLE_ACTION = def_struct("SetVariableAction", {
+    "label": Type.of("string"),
+    "target_node": RefType(NODE),
+    "variable_name": Type.of("string"),
+    "value": Type.of("string")
+}, base=ACTION)
+

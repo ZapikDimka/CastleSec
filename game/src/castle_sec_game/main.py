@@ -54,7 +54,7 @@ def display_node(game: Game):
     else:
         left.append(draw_line(f"{BOLD}{YELLOW}Available Actions:{RESET}", g_width))
         for i, action in enumerate(actions):
-            label = action.as_composite()["label"].as_str()
+            label = action.as_struct()["label"].as_str()
             prefix = f"[{i}] "
             prefix_len = len(prefix)
 
@@ -125,7 +125,7 @@ async def run_game():
         raw_map_data = json.load(f)
 
     # TODO
-    game = Game(raw_map_data, available_images=set(), available_tasks=set())
+    game = Game(raw_map_data, "assets", "../tasks")
 
     clear_terminal()
 

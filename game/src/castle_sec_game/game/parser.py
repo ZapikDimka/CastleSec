@@ -1,61 +1,104 @@
-from dataclasses import dataclass
+from typing import Any
 
-from castle_sec_game.game.schemas import ACTION_SCHEMAS
-from castle_sec_game.game.types import *
-from castle_sec_game.game.objects import *
-
-
-@dataclass
-class ValidationContext:
-    valid_nodes: set[str]
-    valid_images: set[str]
-    valid_tasks: set[str]
+from castle_sec_game.game.types import Type, RefType, ListType, StructType, TypeTag
+from castle_sec_game.game.objects import Object, Atom, RefObject, ListObject, Struct
+from castle_sec_game.game.schemas import STRUCT_REGISTRY, SUBTYPE_REGISTRY
+from castle_sec_game.game.ctx import EngineContext
 
 
-def load_from_json(data: Any, expected_type: Type | Schema, ctx: ValidationContext) -> Object:
-    """Recursively parses JSON and strictly validates foreign key references."""
+def load_from_json(data: Any, expected_type: Type, ctx: EngineContext) -> Object:
+    _scan_for_ids(data, expected_type, ctx)
 
-    # 1. Parse References (Foreign Keys)
+    return _build_objects(data, expected_type, ctx)
+
+
+def _scan_for_ids(data: Any, expected_type: Type, ctx: EngineContext):
+    if data is None:
+        return
+
+    if isinstance(expected_type, ListType):
+        if isinstance(data, list):
+            for item in data:
+                _scan_for_ids(item, expected_type.item_type, ctx)
+
+    elif isinstance(expected_type, StructType):
+        if isinstance(data, dict):
+            actual_type = expected_type
+
+            # Resolve polymorphism
+            if "type" in data:
+                actual_type = STRUCT_REGISTRY.get(data["type"], expected_type)
+
+            # Identify the object. Since Assets/Tasks are pre-loaded by you,
+            # this mostly registers your Nodes, Maps, and Items.
+            obj_id = data.get("id") or data.get("name")
+            if isinstance(obj_id, str):
+                curr_type = actual_type
+                while curr_type:
+                    ctx.register_id(curr_type, obj_id)
+                    curr_type = curr_type.base
+
+            for key, field_type in actual_type.schema.items():
+                if key == "type": continue
+                _scan_for_ids(data.get(key), field_type, ctx)
+
+
+def _build_objects(data: Any, expected_type: Type, ctx: EngineContext) -> Object:
+    if expected_type.tag in (TypeTag.STRING):
+        val = str(data) if data is not None else ""
+        return Atom(val, expected_type)  # <--- Pass the type in!
+
+        # 2. References
     if isinstance(expected_type, RefType):
         val = str(data) if data is not None else ""
-
-        # Cross-reference the parsed string with our known context
-        if expected_type.target_type == "node" and val not in ctx.valid_nodes:
-            raise ValueError(f"Load Error: Reference to unknown node '{val}'")
-
-        if expected_type.target_type == "image" and val and val not in ctx.valid_images:
-            raise ValueError(f"Load Error: Reference to unknown image '{val}'")
-
-        if expected_type.target_type == "task" and val not in ctx.valid_tasks:
-            raise ValueError(f"Load Error: Reference to unknown task '{val}'")
-
-        # Return as a standard Atom string for the engine
-        return Atom(val)
-
-    # 2. Parse Primitives
-    if isinstance(expected_type, Type) and expected_type.tag == TypeTag.STRING:
-        return Atom(str(data) if data is not None else "")
+        return RefObject(expected_type.target_type, val, ctx)
 
     # 3. Parse Lists
     if isinstance(expected_type, ListType):
-        items = []
-        for raw_item in (data or []):
-            if expected_type.item_type.tag == TypeTag.ACTION:
-                action_type = raw_item.get("type")
-                schema = ACTION_SCHEMAS.get(action_type)
-                if not schema:
-                    raise ValueError(f"Unknown action type in JSON: {action_type}")
-                items.append(load_from_json(raw_item, schema, ctx))
-            else:
-                items.append(load_from_json(raw_item, expected_type.item_type, ctx))
+        if data is None: data = []
+        if not isinstance(data, list):
+            raise TypeError(f"Expected list for {expected_type.item_type.tag}, got {type(data).__name__}")
+
+        items = [_build_objects(raw_item, expected_type.item_type, ctx) for raw_item in data]
         return ListObject(expected_type.item_type, items)
 
-    # 4. Parse Composites
-    if isinstance(expected_type, Schema):
-        variables_dict = {}
-        for key, field_type in expected_type.schema.items():
-            raw_value = data.get(key)
-            variables_dict[key] = load_from_json(raw_value, field_type, ctx)
-        return Composite(expected_type, variables_dict)
+    # 4. Parse Structs
+    if isinstance(expected_type, StructType):
+        if data is None: data = {}
+        if not isinstance(data, dict):
+            raise TypeError(f"Expected dict for '{expected_type.name}', got {type(data).__name__}")
 
-    raise TypeError(f"Expected {expected_type.__name__}, got {type(data).__name__}")
+        actual_type = expected_type
+
+        # Polymorphism Resolution and Validation
+        if "type" in data:
+            actual_type_name = data["type"]
+            if actual_type_name != expected_type.name:
+                valid_subtypes = SUBTYPE_REGISTRY.get(expected_type.name, set())
+                if actual_type_name not in valid_subtypes:
+                    raise TypeError(
+                        f"Load Error: '{actual_type_name}' is not a valid subtype of '{expected_type.name}'.")
+
+                actual_type = STRUCT_REGISTRY.get(actual_type_name)
+                if not actual_type:
+                    raise ValueError(f"Load Error: StructType '{actual_type_name}' not found.")
+
+        # Build all children
+        fields = {}
+        for key, field_type in actual_type.schema.items():
+            if key == "type": continue
+            fields[key] = _build_objects(data.get(key), field_type, ctx)
+
+        struct_obj = Struct(actual_type, fields)
+
+        # Store in Context so RefObject.resolve() works globally
+        obj_id = data.get("id") or data.get("name")
+        if isinstance(obj_id, str):
+            curr_type = actual_type
+            while curr_type:
+                ctx.store_object(curr_type, obj_id, struct_obj)
+                curr_type = curr_type.base
+
+        return struct_obj
+
+    raise TypeError(f"Unknown Type encountered: {expected_type}")

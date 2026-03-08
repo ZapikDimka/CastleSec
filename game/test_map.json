@@ -1,36 +1,61 @@
 {
-    "starting_node": "cell_01",
-    "nodes": [
+  "items": [
+  ],
+  "root": "MainMap",
+  "maps": [
+    {
+      "id": "MainMap",
+      "root": "cell_01",
+      "nodes": [
         {
-            "id": "cell_01",
-            "name": "Dungeon Cell",
-            "text": "You are in a damp cell.",
-            "actions": [
-                {
-                    "type": "SetVariableAction",
-                    "label": "Kick the door open",
-                    "target_node_id": "cell_01",
-                    "variable_name": "text",
-                    "new_value": "You are in a damp cell. The iron door is broken off its hinges."
-                },
-                {
-                    "type": "MoveAction",
-                    "label": "Walk through the door",
-                    "to": "hallway_01"
-                }
-            ]
+          "id": "cell_01",
+          "name": "Dungeon Cell",
+          "text": "You are in a damp cell.",
+          "actions": [
+            {
+              "type": "SetVariableAction",
+              "label": "Kick the door open",
+              "target_node": "cell_01",
+              "variable_name": "text",
+              "value": "You are in a damp cell. The iron door is broken off its hinges."
+            },
+            {
+              "type": "MoveAction",
+              "label": "Walk through the door",
+              "to": "hallway_01"
+            },
+            {
+              "type": "MoveAction",
+              "label": "Walk to some room",
+              "to": "room_01"
+            }
+          ]
         },
         {
-            "id": "hallway_01",
-            "name": "Dark Hallway",
-            "text": "It is too dark to see anything.",
-            "actions": [
-                {
-                    "type": "MoveAction",
-                    "label": "Go back to the cell",
-                    "to": "cell_01"
-                }
-            ]
+          "id": "hallway_01",
+          "name": "Dark Hallway",
+          "text": "It is too dark to see anything.",
+          "actions": [
+            {
+              "type": "MoveAction",
+              "label": "Go back to the cell",
+              "to": "cell_01"
+            }
+          ]
+        },
+        {
+          "id": "room_01",
+          "name": "Some Room",
+          "text": "Some room text",
+          "actions": [
+            {
+              "type": "MoveAction",
+              "label": "Go back to the cell",
+              "to": "cell_01"
+            }
+          ]
         }
-    ]
+      ]
+    }
+  ]
 }
