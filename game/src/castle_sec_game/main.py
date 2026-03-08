@@ -25,7 +25,7 @@ def draw_line(content, width, border_color=CYAN):
 
 def display_node(game: Game):
     node = game.get_current_node()
-    actions = node["actions"].as_list().items
+    actions = game.get_actions()
     inventory = game.inventory
 
     g_width = 52

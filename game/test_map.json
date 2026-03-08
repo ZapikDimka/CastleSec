@@ -13,21 +13,34 @@
           "text": "You are in a damp cell.",
           "actions": [
             {
-              "type": "SetVariableAction",
               "label": "Kick the door open",
-              "target_node": "cell_01",
-              "variable_name": "text",
-              "value": "You are in a damp cell. The iron door is broken off its hinges."
+              "functions": [
+                {
+                  "type": "SetVariableFunction",
+                  "target_node": "cell_01",
+                  "variable_name": "text",
+                  "value": "You are in a damp cell. The iron door is broken off its hinges."
+                }
+              ]
             },
             {
-              "type": "MoveAction",
               "label": "Walk through the door",
-              "to": "hallway_01"
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "hallway_01"
+                }
+              ]
             },
             {
-              "type": "MoveAction",
-              "label": "Walk to some room",
-              "to": "room_01"
+              "label": "Walk through the door",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "label": "Walk to some room",
+                  "to": "room_01"
+                }
+              ]
             }
           ]
         },
@@ -37,9 +50,13 @@
           "text": "It is too dark to see anything.",
           "actions": [
             {
-              "type": "MoveAction",
               "label": "Go back to the cell",
-              "to": "cell_01"
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
             }
           ]
         },
@@ -49,9 +66,13 @@
           "text": "Some room text",
           "actions": [
             {
-              "type": "MoveAction",
               "label": "Go back to the cell",
-              "to": "cell_01"
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
             }
           ]
         }

@@ -24,6 +24,9 @@ class Game:
     def get_current_node(self) -> Struct:
         return self._state["current_node"].as_ref().resolve()
 
+    def get_actions(self) -> list:
+        return self._state["current_node"].as_ref_v(NODE)["actions"].as_list_v(ACTION)
+
     @property
     def inventory(self) -> list:
         return [item.resolve()["name"].as_str() for item in self._state["inventory"].as_struct(INVENTORY)["items"].as_list_v(RefType(ITEM))]
@@ -37,10 +40,15 @@ class Game:
         actions = node["actions"].as_list().items
 
         action = actions[action_index].as_struct(ACTION)
-        match action.type.name:
-            case MOVE_ACTION.name:
-                self._state["current_node"] = action["to"]
-            case SET_VARIABLE_ACTION.name:
-                target = action["target_node"].as_ref_v()
-                var_name = action["variable_name"].as_str()
-                target[var_name] = action["value"] # TODO
+        functions = action["functions"].as_list_v(FUNCTION)
+        for function in functions:
+            self._run_function(function)
+
+    def _run_function(self, function: Struct):
+        match function.type.name:
+            case MOVE_FUNCTION.name:
+                self._state["current_node"] = function["to"]
+            case SET_VARIABLE_FUNCTION.name:
+                target = function["target_node"].as_ref_v()
+                var_name = function["variable_name"].as_str()
+                target[var_name] = function["value"]

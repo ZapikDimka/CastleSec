@@ -24,7 +24,12 @@ TASK = def_struct("Task", {
     "path": Type.of("string")
 })
 
-ACTION = def_struct("Action", {})
+FUNCTION = def_struct("Function", {})
+
+ACTION = def_struct("Action", {
+    "label": Type.of("string"),
+    "functions": ListType(FUNCTION)
+})
 
 ITEM = def_struct("Item", {
     "name": Type.of("string"),
@@ -64,21 +69,21 @@ GAME_STATE = def_struct("GameState", {
 
 ###
 
-RETURN_ACTION = def_struct("ReturnAction", {}, base=ACTION)
+RETURN_FUNCTION = def_struct("ReturnFunction", {}, base=FUNCTION)
 
-MOVE_ACTION = def_struct("MoveAction", {
+MOVE_FUNCTION = def_struct("MoveFunction", {
     "label": Type.of("string"),
     "to": RefType(NODE)
-}, base=ACTION)
+}, base=FUNCTION)
 
-PICK_UP_ITEM_ACTION = def_struct("PickUpItemAction", {
+PICK_UP_ITEM_FUNCTION = def_struct("PickUpItemFunction", {
     "item": RefType(ITEM)
-}, base=ACTION)
+}, base=FUNCTION)
 
-SET_VARIABLE_ACTION = def_struct("SetVariableAction", {
+SET_VARIABLE_FUNCTION = def_struct("SetVariableFunction", {
     "label": Type.of("string"),
     "target_node": RefType(NODE),
     "variable_name": Type.of("string"),
     "value": Type.of("string")
-}, base=ACTION)
+}, base=FUNCTION)
 
