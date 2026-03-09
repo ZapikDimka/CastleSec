@@ -1,4 +1,4 @@
-from typing import Any, TypeVar, Optional, Type
+from typing import Any, Optional, Type
 
 
 class Context:
@@ -8,7 +8,6 @@ class Context:
     def register_object(self, obj_id: str, obj: Any) -> None:
         if not obj_id:
             raise ValueError("Registration Error: Cannot register an object without a valid ID.")
-
         if obj_id in self._registry:
             raise ValueError(f"Registration Error: Object with ID '{obj_id}' already exists.")
 
@@ -19,7 +18,6 @@ class Context:
 
         if obj is None:
             raise RuntimeError(f"Resolution Error: Object with ID '{obj_id}' not found in context.")
-
         if expected_type is not None and not isinstance(obj, expected_type):
             raise TypeError(
                 f"Resolution Error: Expected ID '{obj_id}' to point to a '{expected_type.__name__}', "

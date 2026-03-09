@@ -13,16 +13,9 @@ class Game:
         loader = AssetLoader(self.ctx)
         loader.load_all(images_dir=images_dir, tasks_dir=tasks_dir)
 
-        # 1. Parse data (Forward references are just string IDs at this stage)
         self.game_data = GameData.model_validate(raw_json)
-
-        # 2. Register all parsed objects into the context
         self._register_objects_to_context()
-
-        # 3. Resolve all forward references upfront
         self._resolve_all_references(self.game_data)
-
-        # 4. Initialize the state safely
         self.state = GameState(
             current_map=self.game_data.root,
             current_node=self.game_data.root.resolve(self.ctx).root,
@@ -39,22 +32,18 @@ class Game:
                 self.ctx.register_object(node.id, node)
 
     def _resolve_all_references(self, obj: Any):
-        """Recursively walks the game data to link and cache all references."""
-        if isinstance(obj, Ref):
-            # Calling resolve here caches the target and validates the ID
-            obj.resolve(self.ctx)
-
-        elif isinstance(obj, BaseModel):
-            for _, val in obj:
-                self._resolve_all_references(val)
-
-        elif isinstance(obj, list):
-            for item in obj:
-                self._resolve_all_references(item)
-
-        elif isinstance(obj, dict):
-            for val in obj.values():
-                self._resolve_all_references(val)
+        match obj:
+            case Ref():
+                obj.resolve(self.ctx)
+            case BaseModel():
+                for _, val in obj:
+                    self._resolve_all_references(val)
+            case list():
+                for item in obj:
+                    self._resolve_all_references(item)
+            case dict():
+                for val in obj.values():
+                    self._resolve_all_references(val)
 
     @property
     def current_node(self) -> Node:

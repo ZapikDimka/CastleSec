@@ -18,7 +18,6 @@ def clean_len(s):
 
 
 def draw_line(content, width, border_color=CYAN):
-    # max(0, ...) ensures padding never goes negative if a single unbroken word exceeds width
     padding = max(0, width - 4 - clean_len(content))
     return f"{BOLD}{border_color}║{RESET} {content}{' ' * padding} {BOLD}{border_color}║{RESET}"
 
@@ -37,13 +36,11 @@ def display_node(game: Game):
 
     left = [f"{BOLD}{CYAN}╔═{'═' * content_width}═╗{RESET}"]
 
-    # Wrap node name (just in case it's huge)
     for line in textwrap.wrap(node_name, content_width):
         left.append(draw_line(line.center(content_width), g_width))
 
     left.append(f"{BOLD}{CYAN}╠═{'═' * content_width}═╣{RESET}")
 
-    # Wrap main node text safely
     for line in textwrap.wrap(node_text, content_width):
         left.append(draw_line(line, g_width))
 
@@ -58,16 +55,13 @@ def display_node(game: Game):
             prefix = f"[{i}] "
             prefix_len = len(prefix)
 
-            # Wrap the action text, accounting for the width of the "[X] " prefix
             wrapped_action = textwrap.wrap(label, content_width - prefix_len)
 
             if not wrapped_action:
                 continue
 
-            # First line gets the colored prefix
             left.append(draw_line(f"{GREEN}[{i}]{RESET} {wrapped_action[0]}", g_width))
 
-            # Subsequent lines are indented to match the text
             for line in wrapped_action[1:]:
                 left.append(draw_line(f"{' ' * prefix_len}{line}", g_width))
 
@@ -124,7 +118,6 @@ async def run_game():
     with open("test_map.json", "r") as f:
         raw_map_data = json.load(f)
 
-    # TODO
     game = Game(raw_map_data, "assets", "../tasks")
 
     clear_terminal()

@@ -19,11 +19,7 @@ class AssetLoader:
         for item in path.iterdir():
             if item.is_file():
                 asset_id = item.name
-
-                # Directly instantiate the Pydantic model
                 asset = Asset(path=str(item))
-
-                # Register the model in the unified engine context
                 self.ctx.register_object(asset_id, asset)
 
     def load_tasks_from_dir(self, tasks_dir: Union[str, Path]) -> None:
@@ -36,11 +32,7 @@ class AssetLoader:
         for item in path.iterdir():
             if item.is_dir():
                 task_id = item.name
-
-                # Directly instantiate the Pydantic model
                 task = Task(path=str(item))
-
-                # Register the model in the unified engine context
                 self.ctx.register_object(task_id, task)
 
     def load_all(self, images_dir: Union[str, Path], tasks_dir: Union[str, Path]) -> None:
