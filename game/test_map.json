@@ -1,74 +1,112 @@
 {
-  "items": {
-    "ITEM_dog_shit": {
-      "name": "Dog Shit"
-    },
-    "ITEM_key": {
-      "name": "Key"
-    },
-    "ITEM_golden_loaf": {
-      "name": "Golden Loaf"
+  "items": [
+    {
+      "id": "dog_shit",
+      "name": "Dog Shit",
+      "image": "item_icon_placeholder.png"
     }
-  },
-  "root": "NODE_root",
-  "nodes": {
-    "NODE_root": {
-      "name": "Root Node",
-      "text": "You see a root.",
-      "actions": [
+  ],
+  "root": "MainMap",
+  "maps": [
+    {
+      "id": "MainMap",
+      "root": "cell_01",
+      "nodes": [
         {
-          "type": "return"
+          "id": "cell_01",
+          "name": "Dungeon Cell",
+          "text": "You are in a damp cell.",
+          "image": "img1.png",
+          "actions": [
+            {
+              "label": "Pick up",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "dog_shit"
+                }
+              ]
+            },
+            {
+              "label": "Solve task",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "test",
+                  "on_success": [],
+                  "on_failure": []
+                }
+              ]
+            },
+            {
+              "label": "Kick the door open",
+              "functions": [
+                {
+                  "type": "SetVariableFunction",
+                  "target_node": "cell_01",
+                  "variable": "text",
+                  "value": "You are in a damp cell. The iron door is broken off its hinges."
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "hallway_01"
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "label": "Walk to some room",
+                  "to": "room_01"
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "move",
-          "to": "NODE_a"
+          "id": "hallway_01",
+          "name": "Dark Hallway",
+          "text": "It is too dark to see anything.",
+          "image": "img2.png",
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "move",
-          "to": "NODE_b"
-        },
-        {
-          "type": "solve_task",
-          "name": "test"
-        }
-      ]
-    },
-    "NODE_a": {
-      "name": "A Node",
-      "text": "Hello, Leatherman",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_key"
-        }
-      ]
-    },
-    "NODE_b": {
-      "name": "B Node",
-      "text": "You encounter node B",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_dog_shit"
-        },
-        {
-          "type": "if",
-          "condition": {
-            "type": "has_item",
-            "item": "ITEM_dog_shit"
-          },
-          "action": {
-            "type": "move",
-            "to": "NODE_a"
-          }
+          "id": "room_01",
+          "name": "Some Room",
+          "text": "Some room text",
+          "image": "img3.png",
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
-  }
+  ]
 }

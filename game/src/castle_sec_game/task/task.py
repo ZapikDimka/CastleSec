@@ -16,7 +16,7 @@ class TaskResult(Enum):
     def is_success(self):
         return self == TaskResult.SUCCESS
 
-class Task:
+class TaskRunner:
     _name: str
     _id: uuid.UUID
     _timeout: float
@@ -51,6 +51,8 @@ class Task:
         ]
         '''
         # --service-ports
+
+        # TODO: Un-hardcode tasks folder
         cmd = [
             "docker", "compose",
             "-p", f"{self}",

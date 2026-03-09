@@ -1,18 +1,21 @@
+import json
 import logging
 import typing
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from castle_sec_game.file import FileReader
-from castle_sec_game.game import Game
+from castle_sec_game.game.game import Game
 from fastapi import FastAPI, HTTPException, Request, Depends
 from starlette import status
+from starlette.staticfiles import StaticFiles
 
 from dto import game_to_dto, GameStateDto
 
 
 logging.getLogger("game").setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
+
+assets_path = "../game/assets"
 
 class State:
     game: Game
@@ -23,9 +26,9 @@ class State:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    reader = FileReader("../game/test_map.json")
-    root_node = reader.read_file()
-    game = Game(root_node)
+    with open("../game/test_map.json", "r") as f:
+        raw_map_data = json.load(f)
+    game = Game(raw_map_data, assets_path, "../tasks")
     app.state = State(game=game)
 
     yield
@@ -57,5 +60,6 @@ async def perform_action(index: int, game: Annotated[Game, Depends(get_game)]) -
     if index < 0 or index >= len(actions):
         raise HTTPException(status_code=400, detail="Action index out of range")
 
-    action = actions[index]
-    game.act(action)  # TODO: Handle?
+    game.act(index)  # TODO: Handle?
+
+app.mount("/assets", StaticFiles(directory=assets_path), name="assets")
