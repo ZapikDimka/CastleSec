@@ -16,7 +16,7 @@ class TaskResult(Enum):
     def is_success(self):
         return self == TaskResult.SUCCESS
 
-class Task:
+class TaskRunner:
     _name: str
     _id: uuid.UUID
     _timeout: float

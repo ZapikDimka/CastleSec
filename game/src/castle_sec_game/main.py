@@ -125,12 +125,8 @@ async def run_game():
     while True:
         display_node(game)
         action_index = await select_action(game)
-        if action_index is not None:
-            clear_terminal()
-            game.act(action_index)
-        else:
-            clear_terminal()
-            print(f"{YELLOW}Invalid input, try again.{RESET}")
+        clear_terminal()
+        game.act(action_index)
         await asyncio.sleep(0)
 
 

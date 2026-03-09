@@ -29,6 +29,18 @@
               ]
             },
             {
+              "label": "Solve task",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "test",
+                  "on_success": [],
+                  "on_failure": []
+                }
+              ]
+            },
+            {
               "label": "Kick the door open",
               "functions": [
                 {

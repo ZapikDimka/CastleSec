@@ -64,13 +64,19 @@ class PickUpItemFunction(BaseFunction):
     type: Literal["PickUpItemFunction"] = "PickUpItemFunction"
     item: Ref[Item]
 
+class SolveTaskFunction(BaseFunction):
+    type: Literal["SolveTaskFunction"] = "SolveTaskFunction"
+    task: Ref[Task]
+    on_success: list["FunctionType"] = Field(default_factory=list)
+    on_failure: list["FunctionType"] = Field(default_factory=list)
+
 class SetVariableFunction(BaseFunction):
     type: Literal["SetVariableFunction"] = "SetVariableFunction"
     target_node: Optional[Ref[Node]] = None
     variable: str
     value: str
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetVariableFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetVariableFunction, SolveTaskFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str
