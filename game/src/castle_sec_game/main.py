@@ -24,9 +24,9 @@ def draw_line(content, width, border_color=CYAN):
 
 
 def display_node(game: Game):
-    node = game.get_current_node()
-    actions = game.get_actions()
-    inventory = game.inventory
+    node = game.current_node
+    actions = game.actions
+    inventory = [item.resolve(game.ctx) for item in game.inventory.items]
 
     g_width = 52
     i_width = 25
@@ -82,9 +82,9 @@ def display_node(game: Game):
     if not inventory:
         right.append(f"{BOLD}{YELLOW}║{RESET} {'(empty)'.center(i_width - 4)} {BOLD}{YELLOW}║{RESET}")
     else:
-        for item_name in inventory:
+        for item in inventory:
             # Wrap inventory items to prevent breaking the right panel
-            for line in textwrap.wrap(item_name, i_width - 4):
+            for line in textwrap.wrap(item.name, i_width - 4):
                 item_line = line.center(i_width - 4)
                 right.append(f"{BOLD}{YELLOW}║{RESET} {item_line} {BOLD}{YELLOW}║{RESET}")
 
@@ -99,7 +99,7 @@ def display_node(game: Game):
 
 
 async def select_action(game: Game) -> int | None:
-    actions = game.get_actions()
+    actions = game.actions
 
     index_str = await ainput("\n> ")
     if game.is_solving_task:

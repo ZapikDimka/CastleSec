@@ -56,25 +56,24 @@ class Game:
             for val in obj.values():
                 self._resolve_all_references(val)
 
-    def get_current_node(self) -> Node:
+    @property
+    def current_node(self) -> Node:
         return self.state.current_node.resolve(self.ctx)
 
-    def get_actions(self) -> list:
-        return self.get_current_node().actions
+    @property
+    def actions(self) -> list:
+        return self.current_node.actions
 
     @property
-    def inventory(self) -> list[str]:
-        return [
-            item_ref.resolve(self.ctx).name
-            for item_ref in self.state.inventory.items
-        ]
+    def inventory(self) -> Inventory:
+        return self.state.inventory
 
     @property
     def is_solving_task(self) -> bool:
         return False
 
     def act(self, action_index: int):
-        node = self.get_current_node()
+        node = self.current_node
         action = node.actions[action_index]
 
         for function in action.functions:

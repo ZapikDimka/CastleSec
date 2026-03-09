@@ -1,7 +1,5 @@
-from castle_sec_game.action import Action
-from castle_sec_game.game import Game
-from castle_sec_game.inventory import Inventory, InventoryItem
-from castle_sec_game.map import MapNode
+from castle_sec_game.game.game import Game
+from castle_sec_game.game.types import *
 from pydantic import BaseModel
 
 class InventoryItemDto(BaseModel):
@@ -26,27 +24,27 @@ class GameStateDto(BaseModel):
     inventory: InventoryDto
 
 
-def node_to_dto(node: MapNode) -> MapNodeDto:
+def node_to_dto(node: Node) -> MapNodeDto:
     return MapNodeDto(
         name=node.name,
         text=node.text,
-        image=node.image
+        image=node.image.root
     )
 
-def inventory_item_to_dto(item: InventoryItem) -> InventoryItemDto:
+def inventory_item_to_dto(item: Item) -> InventoryItemDto:
     return InventoryItemDto(
         name=item.name,
-        image=item.image
+        image=item.image.root
     )
 
-def inventory_to_dto(inventory: Inventory) -> InventoryDto:
+def inventory_to_dto(inventory: Inventory, ctx: Context) -> InventoryDto:
     return InventoryDto(
-        items=list(map(inventory_item_to_dto, inventory))
+        items=[inventory_item_to_dto(item.resolve(ctx)) for item in inventory.items]
     )
 
 def action_to_dto(action: Action) -> ActionDto:
     return ActionDto(
-        text=action.text,
+        text=action.label,
     )
 
 def game_to_dto(game: Game) -> GameStateDto:
@@ -54,5 +52,5 @@ def game_to_dto(game: Game) -> GameStateDto:
         is_solving_task=game.is_solving_task,
         node=node_to_dto(game.current_node),
         actions=list(map(action_to_dto, game.actions)),
-        inventory=inventory_to_dto(game.inventory)
+        inventory=inventory_to_dto(game.inventory, game.ctx)
     )
