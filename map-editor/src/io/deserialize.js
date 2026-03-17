@@ -1,6 +1,7 @@
 /**
  * Converts loaded JSON strings back into the editor's state shape.
- * Handles auto-layout if editorJson is missing.
+ * Loads coordinates from game JSON `nodePositions` when present.
+ * Falls back to legacy sidecar positions or auto-layout for missing positions.
  */
 export function deserialize(gameJsonString, editorJsonString) {
     let gameData;
@@ -20,7 +21,7 @@ export function deserialize(gameJsonString, editorJsonString) {
     }
 
     // 1. Extract known keys vs unknown top-level
-    const { items, root, nodes, ..._extraTopLevel } = gameData;
+    const { items, root, nodes, nodePositions: embeddedNodePositions, ..._extraTopLevel } = gameData;
 
     // Validate minimal structure
     if (!nodes || typeof nodes !== 'object' || !root) {
@@ -66,10 +67,11 @@ export function deserialize(gameJsonString, editorJsonString) {
     }
 
     // 4. Resolve Positions
-    let nodePositions = editorData?.nodePositions;
-    if (!nodePositions || Object.keys(nodePositions).length === 0) {
-        nodePositions = autoLayout(root, parsedNodes);
-    }
+    const fallbackPositions = autoLayout(root, parsedNodes);
+    const embeddedResolved = sanitizeNodePositions(embeddedNodePositions, parsedNodes);
+    const sidecarResolved = sanitizeNodePositions(editorData?.nodePositions, parsedNodes);
+    const basePositions = Object.keys(embeddedResolved).length > 0 ? embeddedResolved : sidecarResolved;
+    const nodePositions = mergeMissingPositions(basePositions, fallbackPositions, parsedNodes);
 
     return {
         items: parsedItems,
@@ -78,6 +80,32 @@ export function deserialize(gameJsonString, editorJsonString) {
         nodePositions,
         _extraTopLevel
     };
+}
+
+function sanitizeNodePositions(rawPositions, nodes) {
+    if (!rawPositions || typeof rawPositions !== 'object') {
+        return {};
+    }
+
+    const cleaned = {};
+    for (const nodeId of Object.keys(nodes)) {
+        const pos = rawPositions[nodeId];
+        if (!pos || typeof pos !== 'object') continue;
+        const x = Number(pos.x);
+        const y = Number(pos.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        cleaned[nodeId] = { x: Math.round(x), y: Math.round(y) };
+    }
+
+    return cleaned;
+}
+
+function mergeMissingPositions(basePositions, fallbackPositions, nodes) {
+    const merged = {};
+    for (const nodeId of Object.keys(nodes)) {
+        merged[nodeId] = basePositions[nodeId] || fallbackPositions[nodeId] || { x: 0, y: 0 };
+    }
+    return merged;
 }
 
 /**

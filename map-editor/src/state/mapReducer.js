@@ -54,7 +54,6 @@ export function createInitialState() {
         selectedItemId: null,
         filePath: null,
         isDirty: false,
-        isDirty: false,
         _extraTopLevel: {},
         nodeCounter: 3,
         itemCounter: 0,
@@ -84,6 +83,8 @@ function baseReducer(state, action) {
             const { id: requestedId, x, y } = action.payload;
             const newCounter = state.nodeCounter + 1;
             const id = requestedId || `NODE_${newCounter}`;
+            const normalizedX = normalizeCoordinate(x);
+            const normalizedY = normalizeCoordinate(y);
             return {
                 ...state,
                 nodes: {
@@ -97,7 +98,7 @@ function baseReducer(state, action) {
                 },
                 nodePositions: {
                     ...state.nodePositions,
-                    [id]: { x, y },
+                    [id]: { x: normalizedX, y: normalizedY },
                 },
                 selectedNodeId: id,
                 isDirty: true,
@@ -156,11 +157,15 @@ function baseReducer(state, action) {
 
         case 'MOVE_NODE_POSITION': {
             const { id, x, y } = action.payload;
+            if (!state.nodes[id]) return state;
             return {
                 ...state,
                 nodePositions: {
                     ...state.nodePositions,
-                    [id]: { x, y },
+                    [id]: {
+                        x: normalizeCoordinate(x),
+                        y: normalizeCoordinate(y),
+                    },
                 },
             };
         }
@@ -319,7 +324,10 @@ function baseReducer(state, action) {
 
             // Rebuild positions with new key
             const { [oldId]: oldPos, ...restPositions } = state.nodePositions;
-            const renamedPositions = { ...restPositions, [newId]: oldPos };
+            const renamedPositions = {
+                ...restPositions,
+                [newId]: oldPos || { x: 0, y: 0 },
+            };
 
             return {
                 ...state,
@@ -396,6 +404,11 @@ function baseReducer(state, action) {
         default:
             return state;
     }
+}
+
+function normalizeCoordinate(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? Math.round(numeric) : 0;
 }
 
 export function mapReducer(state, action) {
@@ -496,4 +509,3 @@ function renameItemInActions(actions, oldId, newId) {
         return action;
     });
 }
-

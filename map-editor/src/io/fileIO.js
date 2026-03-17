@@ -5,11 +5,6 @@ import { validate } from '../validation/validate';
 // Store live file handles outside of React state since they aren't serializable
 let currentGameHandle = null;
 
-// Get the expected sidecar filename (e.g., test_map.json -> test_map.editor.json)
-function getSidecarName(gameFilename) {
-    return gameFilename.replace(/\.json$/i, '.editor.json');
-}
-
 /**
  * Common picker options for game JSON
  */
@@ -23,17 +18,29 @@ const pickerOptions = {
     excludeAcceptAllOption: true,
 };
 
-/**
- * Check if the browser supports the File System Access API
- */
-export const supportsFSA = 'showOpenFilePicker' in window;
+function canOpenWithFSA() {
+    return typeof window !== 'undefined' && typeof window.showOpenFilePicker === 'function';
+}
+
+function canSaveWithFSA() {
+    return typeof window !== 'undefined' && typeof window.showSaveFilePicker === 'function';
+}
 
 /**
- * Opens a map file (and attempts to load sidecar)
+ * Check if the browser supports any File System Access API picker.
+ */
+export const supportsFSA =
+    (typeof window !== 'undefined') &&
+    (typeof window.showOpenFilePicker === 'function' || typeof window.showSaveFilePicker === 'function');
+
+/**
+ * Opens a map file.
+ * Coordinates are expected in the main JSON under `nodePositions`.
+ * A legacy sidecar payload can still be passed into `deserialize` by other callers.
  * @returns {Promise<{ state: Object, filename: string }>}
  */
 export async function openMapFile() {
-    if (!supportsFSA) {
+    if (!canOpenWithFSA()) {
         return openMapFallback();
     }
 
@@ -43,31 +50,7 @@ export async function openMapFile() {
 
         const file = await handle.getFile();
         const gameJsonStr = await file.text();
-
-        // Attempt to find sidecar
-        let editorJsonStr = null;
-        try {
-            // Need to get the directory handle to find the sidecar
-            // Note: showOpenFilePicker doesn't give us the directory handle directly.
-            // If the user hasn't granted directory access, we can't fetch the sidecar seamlessly.
-            // Browsers don't allow relative fetching without a directory handle.
-            // However, we can use the proposed showDirectoryPicker workflow if needed, 
-            // but the requirement calls for standard open.
-            // For full sidecar support on Open, we fallback to just loading standard if sidecar doesn't exist
-            // Wait, actually, without a directory handle we cannot reliably get a sibling file.
-            // Chrome limits handles to exactly what was selected unless we ask for directory.
-            console.warn('Note: To load .editor.json alongside, the user needs to select it, or we need directory picker.');
-            // Implementation detail: standard FSA API doesn't let us read sibling files from a single file handle.
-            // We'll proceed with just the game JSON which will trigger auto-layout.
-            // To fix this perfectly, users would select the directory, but requirements specify showOpenFilePicker.
-            // We will attempt to ask for the sidecar explicitly if it exists, or just fallback to auto layout.
-            // Update: actually, many map editors just store positions IN the json. But sticking to reqs:
-            console.log('Using auto-layout for open. If positions are needed, use a single file approach in future.');
-        } catch (e) {
-            // Expected
-        }
-
-        const state = deserialize(gameJsonStr, editorJsonStr);
+        const state = deserialize(gameJsonStr, null);
         return { state, filename: file.name };
     } catch (err) {
         // User aborted or error
@@ -90,7 +73,7 @@ export async function saveMapFile(state, currentFilename) {
         }
     }
 
-    if (!supportsFSA) {
+    if (!canSaveWithFSA()) {
         return saveMapFallback(state, currentFilename || 'map.json');
     }
 
@@ -105,10 +88,6 @@ export async function saveMapFile(state, currentFilename) {
         const writable = await currentGameHandle.createWritable();
         await writable.write(gameJson);
         await writable.close();
-
-        // Note: Writing sibling sidecar requires directory permissions which we don't have from showOpenFilePicker.
-        // The sidecar requirement in §6.1 is best handled in a desktop shell (Electron) or Node.js.
-        // In browser, we can only write to the exact handle user granted.
 
         return { filename: currentGameHandle.name };
     } catch (err) {
@@ -128,7 +107,7 @@ export async function saveAsMapFile(state) {
         }
     }
 
-    if (!supportsFSA) {
+    if (!canSaveWithFSA()) {
         return saveMapFallback(state, 'map.json');
     }
 
