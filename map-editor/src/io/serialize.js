@@ -1,7 +1,6 @@
 /**
- * Converts the editor's in-memory state back into two JSON payloads:
- * - gameJson: The main map data for the game engine
- * - editorJson: The sidecar file containing node positions
+ * Converts the editor's in-memory state back into the main map JSON payload.
+ * Node positions are persisted in the same file under `nodePositions`.
  */
 export function serialize(state) {
     const { items, root, nodes, nodePositions, _extraTopLevel } = state;
@@ -48,20 +47,28 @@ export function serialize(state) {
     }
 
     // 3. Assemble Game JSON
+    const normalizedPositions = {};
+    for (const nodeId of Object.keys(nodes)) {
+        const pos = nodePositions?.[nodeId];
+        if (!pos) continue;
+        const x = Number(pos.x);
+        const y = Number(pos.y);
+        if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+        normalizedPositions[nodeId] = {
+            x: Math.round(x),
+            y: Math.round(y),
+        };
+    }
+
     const gameData = {
         items: serializedItems,
         root,
         nodes: serializedNodes,
+        nodePositions: normalizedPositions,
         ...(_extraTopLevel || {}) // spread unknown top-level keys
     };
 
-    // 4. Assemble Editor JSON
-    const editorData = {
-        nodePositions
-    };
-
     return {
-        gameJson: JSON.stringify(gameData, null, 2),
-        editorJson: JSON.stringify(editorData, null, 2)
+        gameJson: JSON.stringify(gameData, null, 2)
     };
 }
