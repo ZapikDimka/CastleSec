@@ -53,6 +53,8 @@ def display_node(game: Game):
 
     if game.is_solving_task:
         left.append(draw_line(f"{YELLOW}Solving task...{RESET}", g_width))
+        if game.task_url:
+            left.append(draw_line(f"{CYAN}{game.task_url}{RESET}", g_width))
     else:
         left.append(draw_line(f"{BOLD}{YELLOW}Available Actions:{RESET}", g_width))
         for i, action in enumerate(actions):

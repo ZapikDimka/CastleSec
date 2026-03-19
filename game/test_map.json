@@ -34,9 +34,9 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "test",
-                  "on_success": [],
-                  "on_failure": []
+                  "task": "test_web",
+                  "on_success": [{"type": "ShowMessageFunction", "message": "Task solved successfully!"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "Task failed. Try again."}]
                 }
               ]
             },

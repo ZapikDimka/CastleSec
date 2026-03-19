@@ -25,6 +25,7 @@ class GameStateDto(BaseModel):
     actions: list[ActionDto]
     inventory: InventoryDto
     message: Optional[str] = None
+    task_url: Optional[str] = None
 
 
 def node_to_dto(node: Node) -> MapNodeDto:
@@ -56,5 +57,6 @@ def game_to_dto(game: Game) -> GameStateDto:
         node=node_to_dto(game.current_node),
         actions=list(map(action_to_dto, game.actions)),
         inventory=inventory_to_dto(game.inventory, game.ctx),
-        message=game.state.message
+        message=game.state.message,
+        task_url=game.task_url
     )

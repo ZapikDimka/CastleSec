@@ -66,6 +66,12 @@ class Game:
     def is_solving_task(self) -> bool:
         return self._task is not None
 
+    @property
+    def task_url(self) -> str | None:
+        if self._task is None:
+            return None
+        return self._task.get_url()
+
     def act(self, action_index: Optional[int] = None) -> Any:
         if action_index is None:
             self._step()
