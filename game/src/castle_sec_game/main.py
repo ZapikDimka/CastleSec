@@ -46,6 +46,11 @@ def display_node(game: Game):
 
     left.append(draw_line("", g_width))
 
+    if game.state.message:
+        for line in textwrap.wrap(game.state.message, content_width):
+            left.append(draw_line(f"{YELLOW}{line}{RESET}", g_width))
+        left.append(draw_line("", g_width))
+
     if game.is_solving_task:
         left.append(draw_line(f"{YELLOW}Solving task...{RESET}", g_width))
     else:

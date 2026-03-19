@@ -1,3 +1,5 @@
+from typing import Optional
+
 from castle_sec_game.game.game import Game
 from castle_sec_game.game.types import *
 from pydantic import BaseModel
@@ -22,6 +24,7 @@ class GameStateDto(BaseModel):
     node: MapNodeDto
     actions: list[ActionDto]
     inventory: InventoryDto
+    message: Optional[str] = None
 
 
 def node_to_dto(node: Node) -> MapNodeDto:
@@ -52,5 +55,6 @@ def game_to_dto(game: Game) -> GameStateDto:
         is_solving_task=game.is_solving_task,
         node=node_to_dto(game.current_node),
         actions=list(map(action_to_dto, game.actions)),
-        inventory=inventory_to_dto(game.inventory, game.ctx)
+        inventory=inventory_to_dto(game.inventory, game.ctx),
+        message=game.state.message
     )

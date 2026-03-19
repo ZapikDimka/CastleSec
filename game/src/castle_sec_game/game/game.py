@@ -74,14 +74,15 @@ class Game:
         if self.is_solving_task:
             return
 
+        self.state.message = None
         node = self.current_node
-        action = node.actions[action_index]
+        action = self._actions[action_index]
 
         for function in action.functions:
             self._run_function(function)
 
         if action.once:
-            node.actions.pop(action_index)
+            node.actions.remove(action)
 
         self._step()
 
@@ -114,8 +115,15 @@ class Game:
 
         return self._actions
 
-    def _evaluate_action_conditions(self, action: Action) -> bool:
+    def _check_condition(self, condition) -> bool:
+        inventory_ids = {ref.ref_id for ref in self.state.inventory.items}
+        match condition.type:
+            case "HasItemCondition":
+                return condition.item.ref_id in inventory_ids
         return True
+
+    def _evaluate_action_conditions(self, action: Action) -> bool:
+        return all(self._check_condition(c) for c in action.conditions)
 
     def _run_function(self, function: BaseFunction):
         match function.type:
@@ -150,3 +158,14 @@ class Game:
                 }
 
                 self._task.run()
+
+            case "ShowMessageFunction":
+                self.state.message = function.message
+
+            case "ConditionalFunction":
+                if self._check_condition(function.condition):
+                    for f in function.on_success:
+                        self._run_function(f)
+                else:
+                    for f in function.on_failure:
+                        self._run_function(f)

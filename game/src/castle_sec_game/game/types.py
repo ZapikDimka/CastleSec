@@ -52,6 +52,7 @@ class GameState(BaseModel):
     current_node: Ref[Node]
     prev_node: Optional[Ref[Node]] = None
     inventory: Inventory
+    message: Optional[str] = None
 
 class BaseFunction(BaseModel):
     pass
@@ -76,11 +77,29 @@ class SetVariableFunction(BaseFunction):
     variable: str
     value: str
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetVariableFunction, SolveTaskFunction], Field(discriminator="type")]
+class HasItemCondition(BaseModel):
+    type: Literal["HasItemCondition"] = "HasItemCondition"
+    item: Ref[Item]
+
+ConditionType = Annotated[Union[HasItemCondition], Field(discriminator="type")]
+
+class ShowMessageFunction(BaseFunction):
+    type: Literal["ShowMessageFunction"] = "ShowMessageFunction"
+    message: str
+
+class ConditionalFunction(BaseFunction):
+    type: Literal["ConditionalFunction"] = "ConditionalFunction"
+    condition: ConditionType
+    on_success: list["FunctionType"] = Field(default_factory=list)
+    on_failure: list["FunctionType"] = Field(default_factory=list)
+
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetVariableFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str
     functions: list[FunctionType]
     once: Optional[bool] = None
+    conditions: list[ConditionType] = Field(default_factory=list)
 
 Node.model_rebuild()
+ConditionalFunction.model_rebuild()

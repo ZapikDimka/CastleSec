@@ -52,7 +52,13 @@
               ]
             },
             {
-              "label": "Walk through the door",
+              "label": "Walk through the door %",
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "dog_shit"
+                }
+              ],
               "functions": [
                 {
                   "type": "MoveFunction",
@@ -67,6 +73,17 @@
                   "type": "MoveFunction",
                   "label": "Walk to some room",
                   "to": "room_01"
+                }
+              ]
+            },
+            {
+              "label": "Try the heavy door",
+              "functions": [
+                {
+                  "type": "ConditionalFunction",
+                  "condition": {"type": "HasItemCondition", "item": "dog_shit"},
+                  "on_success": [{"type": "MoveFunction", "to": "hallway_01"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "The door won't budge."}]
                 }
               ]
             }
