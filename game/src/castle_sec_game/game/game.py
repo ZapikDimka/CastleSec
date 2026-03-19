@@ -136,8 +136,8 @@ class Game:
             case "MoveFunction":
                 self.state.current_node = function.to
 
-            case "SetVariableFunction":
-                target_node = function.target_node.resolve(self.ctx)
+            case "SetTextFunction":
+                target_node = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
                 var_name = function.variable
 
                 if hasattr(target_node, var_name):
@@ -152,6 +152,10 @@ class Game:
                     raise ValueError(
                         f"Runtime Error: Field '{var_name}' does not exist on {type(target_node).__name__}"
                     )
+
+            case "SetImageFunction":
+                target_node = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
+                setattr(target_node, "image", function.value)
 
             case "PickUpItemFunction":
                 self.state.inventory.items.append(function.item)

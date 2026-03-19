@@ -44,7 +44,7 @@
               "label": "Kick the door open",
               "functions": [
                 {
-                  "type": "SetVariableFunction",
+                  "type": "SetTextFunction",
                   "target_node": "cell_01",
                   "variable": "text",
                   "value": "You are in a damp cell. The iron door is broken off its hinges."
