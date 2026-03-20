@@ -17,10 +17,12 @@ class Game:
         self.game_data = GameData.model_validate(raw_json)
         self._register_objects_to_context()
         self._resolve_all_references(self.game_data)
+        starting_node = self.game_data.root.resolve(self.ctx).root
         self.state = GameState(
             current_map=self.game_data.root,
-            current_node=self.game_data.root.resolve(self.ctx).root,
-            inventory=Inventory(items=[])
+            current_node=starting_node,
+            inventory=Inventory(items=[]),
+            visited_nodes=[starting_node.ref_id]
         )
 
         self._task: Optional[TaskRunner] = None
@@ -135,6 +137,8 @@ class Game:
         match function.type:
             case "MoveFunction":
                 self.state.current_node = function.to
+                if function.to.ref_id not in self.state.visited_nodes:
+                    self.state.visited_nodes.append(function.to.ref_id)
 
             case "SetTextFunction":
                 target_node = function.target_node.resolve(self.ctx) if function.target_node else self.current_node

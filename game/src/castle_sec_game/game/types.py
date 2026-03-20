@@ -58,6 +58,7 @@ class GameState(BaseModel):
     prev_node: Optional[Ref[Node]] = None
     inventory: Inventory
     message: Optional[str] = None
+    visited_nodes: list[str] = Field(default_factory=list)
 
 class BaseFunction(BaseModel):
     pass
