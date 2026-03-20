@@ -1,3 +1,4 @@
+import random
 from typing import Any
 
 from pydantic import ValidationError
@@ -132,6 +133,10 @@ class Game:
             case "NodeStateCondition":
                 target = condition.target_node.resolve(self.ctx) if condition.target_node else self.current_node
                 result = target.state == condition.value
+            case "AnyCondition":
+                result = any(self._check_condition(c) for c in condition.conditions)
+            case "AllCondition":
+                result = all(self._check_condition(c) for c in condition.conditions)
         return result ^ bool(condition.negate)
 
     def _evaluate_action_conditions(self, action: Action) -> bool:
@@ -197,3 +202,8 @@ class Game:
                 else:
                     for f in function.on_failure:
                         self._run_function(f)
+
+            case "RandomFunction":
+                branch = random.choices(function.branches, weights=[b.weight for b in function.branches])[0]
+                for f in branch.functions:
+                    self._run_function(f)
