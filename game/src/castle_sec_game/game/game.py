@@ -171,6 +171,7 @@ class Game:
     def _run_function(self, function: BaseFunction):
         match function.type:
             case "MoveFunction":
+                self.state.prev_node = self.state.current_node
                 self.state.current_node = function.to
                 if function.to.ref_id not in self.state.visited_nodes:
                     self.state.visited_nodes.append(function.to.ref_id)
@@ -235,6 +236,7 @@ class Game:
                 self._task.run()
 
             case "ChangeMapFunction":
+                self.state.prev_node = self.state.current_node
                 self.state.current_map = function.map
                 self.state.current_node = function.node
                 if function.node.ref_id not in self.state.visited_nodes:

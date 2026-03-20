@@ -2,7 +2,7 @@ from typing import Optional
 
 from castle_sec_game.game.game import Game
 from castle_sec_game.game.types import *
-from castle_sec_game.game.utils import interpolate
+from castle_sec_game.game.utils import interpolate, build_context
 from pydantic import BaseModel
 
 class InventoryItemDto(BaseModel):
@@ -44,6 +44,7 @@ class GameStateDto(BaseModel):
     map_nodes: list[NodeSummaryDto]
     edges: list[EdgeDto]
     ended: bool
+    map_name: str
 
 
 def node_to_dto(node: Node, variables: dict[str, str]) -> MapNodeDto:
@@ -100,7 +101,7 @@ def _node_edges(node: Node) -> list[EdgeDto]:
 
 def map_data_to_dto(game: Game) -> tuple[list[NodeSummaryDto], list[EdgeDto]]:
     ctx = game.ctx
-    variables = game.state.variables
+    variables = build_context(game)
     current_map = game.state.current_map.resolve(ctx)
     current_map_node_ids = {node.id for node in current_map.nodes}
     visited_ids = set(game.state.visited_nodes) & current_map_node_ids
@@ -125,7 +126,7 @@ def map_data_to_dto(game: Game) -> tuple[list[NodeSummaryDto], list[EdgeDto]]:
     return nodes, edges
 
 def game_to_dto(game: Game) -> GameStateDto:
-    variables = game.state.variables
+    variables = build_context(game)
     map_nodes, edges = map_data_to_dto(game)
     return GameStateDto(
         is_solving_task=game.is_solving_task,
@@ -136,5 +137,6 @@ def game_to_dto(game: Game) -> GameStateDto:
         task_url=game.task_url,
         map_nodes=map_nodes,
         edges=edges,
-        ended=game.state.ended
+        ended=game.state.ended,
+        map_name=game.state.current_map.resolve(game.ctx).name
     )

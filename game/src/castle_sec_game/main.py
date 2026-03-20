@@ -5,7 +5,7 @@ import re
 import textwrap
 
 from castle_sec_game.game.game import Game
-from castle_sec_game.game.utils import interpolate
+from castle_sec_game.game.utils import interpolate, build_context
 
 BOLD, CYAN, YELLOW, GREEN, RESET = "\033[1m", "\033[96m", "\033[93m", "\033[92m", "\033[0m"
 
@@ -27,7 +27,7 @@ def display_node(game: Game):
     node = game.current_node
     actions = game.actions
     inventory = [item.resolve(game.ctx) for item in game.inventory.items]
-    variables = game.state.variables
+    variables = build_context(game)
 
     g_width = 52
     i_width = 25
@@ -35,8 +35,11 @@ def display_node(game: Game):
 
     node_name = interpolate(node.name, variables)
     node_text = interpolate(node.text, variables)
+    map_name = game.state.current_map.resolve(game.ctx).name
 
     left = [f"{BOLD}{CYAN}╔═{'═' * content_width}═╗{RESET}"]
+    left.append(draw_line(map_name.center(content_width), g_width))
+    left.append(f"{BOLD}{CYAN}╠═{'═' * content_width}═╣{RESET}")
 
     for line in textwrap.wrap(node_name, content_width):
         left.append(draw_line(line.center(content_width), g_width))

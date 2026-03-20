@@ -10,12 +10,13 @@
   "maps": [
     {
       "id": "MainMap",
+      "name": "Main Map",
       "root": "cell_01",
       "nodes": [
         {
           "id": "cell_01",
           "name": "Dungeon Cell",
-          "text": "You are in a damp cell.",
+          "text": "You are in a damp cell. (Called {node.name} in {map.name})",
           "image": "img1.png",
           "coords": {"x": 0, "y": 0},
           "actions": [

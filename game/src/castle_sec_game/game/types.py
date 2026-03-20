@@ -43,6 +43,7 @@ class Node(BaseModel):
 
 class Map(BaseModel):
     id: str
+    name: str
     root: Ref[Node]
     nodes: list[Node]
 
