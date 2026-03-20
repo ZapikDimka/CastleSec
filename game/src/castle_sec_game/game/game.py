@@ -125,10 +125,11 @@ class Game:
 
     def _check_condition(self, condition) -> bool:
         inventory_ids = {ref.ref_id for ref in self.state.inventory.items}
+        result = True
         match condition.type:
             case "HasItemCondition":
-                return condition.item.ref_id in inventory_ids
-        return True
+                result = condition.item.ref_id in inventory_ids
+        return result ^ bool(condition.negate)
 
     def _evaluate_action_conditions(self, action: Action) -> bool:
         return all(self._check_condition(c) for c in action.conditions)
@@ -163,6 +164,12 @@ class Game:
 
             case "PickUpItemFunction":
                 self.state.inventory.items.append(function.item)
+
+            case "RemoveItemFunction":
+                self.state.inventory.items = [
+                    ref for ref in self.state.inventory.items
+                    if ref.ref_id != function.item.ref_id
+                ]
 
             case "SolveTaskFunction":
                 self._task = TaskRunner(name=function.task.root)

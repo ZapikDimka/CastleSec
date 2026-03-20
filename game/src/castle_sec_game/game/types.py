@@ -77,6 +77,10 @@ class SolveTaskFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
+class RemoveItemFunction(BaseFunction):
+    type: Literal["RemoveItemFunction"] = "RemoveItemFunction"
+    item: Ref[Item]
+
 class SetTextFunction(BaseFunction):
     type: Literal["SetTextFunction"] = "SetTextFunction"
     target_node: Optional[Ref[Node]] = None
@@ -88,7 +92,10 @@ class SetImageFunction(BaseFunction):
     target_node: Optional[Ref[Node]] = None
     value: Ref[Asset]
 
-class HasItemCondition(BaseModel):
+class BaseCondition(BaseModel):
+    negate: Optional[bool] = None
+
+class HasItemCondition(BaseCondition):
     type: Literal["HasItemCondition"] = "HasItemCondition"
     item: Ref[Item]
 
@@ -104,7 +111,7 @@ class ConditionalFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str
