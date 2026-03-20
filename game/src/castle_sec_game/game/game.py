@@ -129,6 +129,9 @@ class Game:
         match condition.type:
             case "HasItemCondition":
                 result = condition.item.ref_id in inventory_ids
+            case "NodeStateCondition":
+                target = condition.target_node.resolve(self.ctx) if condition.target_node else self.current_node
+                result = target.state == condition.value
         return result ^ bool(condition.negate)
 
     def _evaluate_action_conditions(self, action: Action) -> bool:
@@ -170,6 +173,10 @@ class Game:
                     ref for ref in self.state.inventory.items
                     if ref.ref_id != function.item.ref_id
                 ]
+
+            case "SetNodeStateFunction":
+                target = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
+                target.state = function.value
 
             case "SolveTaskFunction":
                 self._task = TaskRunner(name=function.task.root)

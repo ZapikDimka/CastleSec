@@ -38,6 +38,7 @@ class Node(BaseModel):
     image: Ref[Asset]
     actions: list["Action"]
     coords: Coords
+    state: Optional[str] = None
 
 class Map(BaseModel):
     id: str
@@ -81,6 +82,11 @@ class RemoveItemFunction(BaseFunction):
     type: Literal["RemoveItemFunction"] = "RemoveItemFunction"
     item: Ref[Item]
 
+class SetNodeStateFunction(BaseFunction):
+    type: Literal["SetNodeStateFunction"] = "SetNodeStateFunction"
+    target_node: Optional[Ref[Node]] = None
+    value: Optional[str] = None
+
 class SetTextFunction(BaseFunction):
     type: Literal["SetTextFunction"] = "SetTextFunction"
     target_node: Optional[Ref[Node]] = None
@@ -99,7 +105,12 @@ class HasItemCondition(BaseCondition):
     type: Literal["HasItemCondition"] = "HasItemCondition"
     item: Ref[Item]
 
-ConditionType = Annotated[Union[HasItemCondition], Field(discriminator="type")]
+class NodeStateCondition(BaseCondition):
+    type: Literal["NodeStateCondition"] = "NodeStateCondition"
+    target_node: Optional[Ref[Node]] = None
+    value: Optional[str] = None
+
+ConditionType = Annotated[Union[HasItemCondition, NodeStateCondition], Field(discriminator="type")]
 
 class ShowMessageFunction(BaseFunction):
     type: Literal["ShowMessageFunction"] = "ShowMessageFunction"
@@ -111,7 +122,7 @@ class ConditionalFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str
