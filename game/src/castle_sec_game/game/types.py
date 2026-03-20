@@ -26,6 +26,7 @@ class Item(BaseModel):
     id: str
     name: str
     image: Ref[Asset]
+    description: Optional[str] = None
 
 class Coords(BaseModel):
     x: float
@@ -60,6 +61,8 @@ class GameState(BaseModel):
     inventory: Inventory
     message: Optional[str] = None
     visited_nodes: list[str] = Field(default_factory=list)
+    variables: dict[str, str] = Field(default_factory=dict)
+    ended: bool = False
 
 class BaseFunction(BaseModel):
     pass
@@ -87,6 +90,11 @@ class SetNodeStateFunction(BaseFunction):
     target_node: Optional[Ref[Node]] = None
     value: Optional[str] = None
 
+class SetGameVariableFunction(BaseFunction):
+    type: Literal["SetGameVariableFunction"] = "SetGameVariableFunction"
+    key: str
+    value: Optional[str] = None
+
 class SetTextFunction(BaseFunction):
     type: Literal["SetTextFunction"] = "SetTextFunction"
     target_node: Optional[Ref[Node]] = None
@@ -110,6 +118,11 @@ class NodeStateCondition(BaseCondition):
     target_node: Optional[Ref[Node]] = None
     value: Optional[str] = None
 
+class GameVariableCondition(BaseCondition):
+    type: Literal["GameVariableCondition"] = "GameVariableCondition"
+    key: str
+    value: Optional[str] = None
+
 class AnyCondition(BaseCondition):
     type: Literal["AnyCondition"] = "AnyCondition"
     conditions: list["ConditionType"]
@@ -118,7 +131,7 @@ class AllCondition(BaseCondition):
     type: Literal["AllCondition"] = "AllCondition"
     conditions: list["ConditionType"]
 
-ConditionType = Annotated[Union[HasItemCondition, NodeStateCondition, AnyCondition, AllCondition], Field(discriminator="type")]
+ConditionType = Annotated[Union[HasItemCondition, NodeStateCondition, GameVariableCondition, AnyCondition, AllCondition], Field(discriminator="type")]
 
 class RandomBranch(BaseModel):
     weight: float = Field(gt=0)
@@ -138,7 +151,7 @@ class ConditionalFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetGameVariableFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str

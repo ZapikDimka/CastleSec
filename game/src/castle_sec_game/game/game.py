@@ -133,6 +133,8 @@ class Game:
             case "NodeStateCondition":
                 target = condition.target_node.resolve(self.ctx) if condition.target_node else self.current_node
                 result = target.state == condition.value
+            case "GameVariableCondition":
+                result = self.state.variables.get(condition.key) == condition.value
             case "AnyCondition":
                 result = any(self._check_condition(c) for c in condition.conditions)
             case "AllCondition":
@@ -182,6 +184,12 @@ class Game:
             case "SetNodeStateFunction":
                 target = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
                 target.state = function.value
+
+            case "SetGameVariableFunction":
+                if function.value is None:
+                    self.state.variables.pop(function.key, None)
+                else:
+                    self.state.variables[function.key] = function.value
 
             case "SolveTaskFunction":
                 self._task = TaskRunner(name=function.task.root)
