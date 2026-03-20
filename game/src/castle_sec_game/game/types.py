@@ -96,6 +96,11 @@ class SetGameVariableFunction(BaseFunction):
     key: str
     value: Optional[str] = None
 
+class IncrementGameVariableFunction(BaseFunction):
+    type: Literal["IncrementGameVariableFunction"] = "IncrementGameVariableFunction"
+    key: str
+    amount: int = 1
+
 class SetTextFunction(BaseFunction):
     type: Literal["SetTextFunction"] = "SetTextFunction"
     target_node: Optional[Ref[Node]] = None
@@ -123,6 +128,7 @@ class GameVariableCondition(BaseCondition):
     type: Literal["GameVariableCondition"] = "GameVariableCondition"
     key: str
     value: Optional[str] = None
+    operator: Literal["eq", "gt", "gte", "lt", "lte"] = "eq"
 
 class AnyCondition(BaseCondition):
     type: Literal["AnyCondition"] = "AnyCondition"
@@ -162,7 +168,7 @@ class ConditionalFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetGameVariableFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ChangeMapFunction, EndGameFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetGameVariableFunction, IncrementGameVariableFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ChangeMapFunction, EndGameFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str

@@ -2,6 +2,7 @@ from typing import Optional
 
 from castle_sec_game.game.game import Game
 from castle_sec_game.game.types import *
+from castle_sec_game.game.utils import interpolate
 from pydantic import BaseModel
 
 class InventoryItemDto(BaseModel):
@@ -45,38 +46,38 @@ class GameStateDto(BaseModel):
     ended: bool
 
 
-def node_to_dto(node: Node) -> MapNodeDto:
+def node_to_dto(node: Node, variables: dict[str, str]) -> MapNodeDto:
     return MapNodeDto(
         id=node.id,
-        name=node.name,
-        text=node.text,
+        name=interpolate(node.name, variables),
+        text=interpolate(node.text, variables),
         image=node.image.root,
         coords=node.coords
     )
 
-def node_to_summary_dto(node: Node, visited: bool) -> NodeSummaryDto:
+def node_to_summary_dto(node: Node, visited: bool, variables: dict[str, str]) -> NodeSummaryDto:
     return NodeSummaryDto(
         id=node.id,
-        name=node.name,
+        name=interpolate(node.name, variables),
         coords=node.coords,
         visited=visited
     )
 
-def inventory_item_to_dto(item: Item) -> InventoryItemDto:
+def inventory_item_to_dto(item: Item, variables: dict[str, str]) -> InventoryItemDto:
     return InventoryItemDto(
-        name=item.name,
+        name=interpolate(item.name, variables),
         image=item.image.root,
-        description=item.description
+        description=interpolate(item.description, variables)
     )
 
-def inventory_to_dto(inventory: Inventory, ctx: Context) -> InventoryDto:
+def inventory_to_dto(inventory: Inventory, ctx: Context, variables: dict[str, str]) -> InventoryDto:
     return InventoryDto(
-        items=[inventory_item_to_dto(item.resolve(ctx)) for item in inventory.items]
+        items=[inventory_item_to_dto(item.resolve(ctx), variables) for item in inventory.items]
     )
 
-def action_to_dto(action: Action) -> ActionDto:
+def action_to_dto(action: Action, variables: dict[str, str]) -> ActionDto:
     return ActionDto(
-        text=action.label,
+        text=interpolate(action.label, variables),
     )
 
 def _extract_edges(from_id: str, functions: list, conditional: bool) -> list[EdgeDto]:
@@ -99,6 +100,7 @@ def _node_edges(node: Node) -> list[EdgeDto]:
 
 def map_data_to_dto(game: Game) -> tuple[list[NodeSummaryDto], list[EdgeDto]]:
     ctx = game.ctx
+    variables = game.state.variables
     current_map = game.state.current_map.resolve(ctx)
     current_map_node_ids = {node.id for node in current_map.nodes}
     visited_ids = set(game.state.visited_nodes) & current_map_node_ids
@@ -116,20 +118,21 @@ def map_data_to_dto(game: Game) -> tuple[list[NodeSummaryDto], list[EdgeDto]]:
     included_ids.update(visited_ids)
 
     nodes = [
-        node_to_summary_dto(ctx.get_object(nid, Node), visited=nid in visited_ids)
+        node_to_summary_dto(ctx.get_object(nid, Node), visited=nid in visited_ids, variables=variables)
         for nid in included_ids
     ]
 
     return nodes, edges
 
 def game_to_dto(game: Game) -> GameStateDto:
+    variables = game.state.variables
     map_nodes, edges = map_data_to_dto(game)
     return GameStateDto(
         is_solving_task=game.is_solving_task,
-        node=node_to_dto(game.current_node),
-        actions=list(map(action_to_dto, game.actions)),
-        inventory=inventory_to_dto(game.inventory, game.ctx),
-        message=game.state.message,
+        node=node_to_dto(game.current_node, variables),
+        actions=[action_to_dto(a, variables) for a in game.actions],
+        inventory=inventory_to_dto(game.inventory, game.ctx, variables),
+        message=interpolate(game.state.message, variables),
         task_url=game.task_url,
         map_nodes=map_nodes,
         edges=edges,

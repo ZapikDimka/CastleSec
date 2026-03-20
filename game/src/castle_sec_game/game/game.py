@@ -1,3 +1,4 @@
+import logging
 import random
 from typing import Any
 
@@ -145,7 +146,19 @@ class Game:
                 target = condition.target_node.resolve(self.ctx) if condition.target_node else self.current_node
                 result = target.state == condition.value
             case "GameVariableCondition":
-                result = self.state.variables.get(condition.key) == condition.value
+                if condition.operator == "eq":
+                    result = self.state.variables.get(condition.key) == condition.value
+                else:
+                    try:
+                        var_num = float(self.state.variables.get(condition.key, 0))
+                        cond_num = float(condition.value or 0)
+                        match condition.operator:
+                            case "gt":  result = var_num > cond_num
+                            case "gte": result = var_num >= cond_num
+                            case "lt":  result = var_num < cond_num
+                            case "lte": result = var_num <= cond_num
+                    except (ValueError, TypeError):
+                        result = False
             case "AnyCondition":
                 result = any(self._check_condition(c) for c in condition.conditions)
             case "AllCondition":
@@ -201,6 +214,16 @@ class Game:
                     self.state.variables.pop(function.key, None)
                 else:
                     self.state.variables[function.key] = function.value
+
+            case "IncrementGameVariableFunction":
+                try:
+                    current = int(self.state.variables.get(function.key, 0))
+                    self.state.variables[function.key] = str(current + function.amount)
+                except ValueError:
+                    logging.warning(
+                        f"IncrementGameVariableFunction: cannot increment '{function.key}' "
+                        f"— current value is non-integer: '{self.state.variables.get(function.key)}'"
+                    )
 
             case "SolveTaskFunction":
                 self._task = TaskRunner(name=function.task.root)
