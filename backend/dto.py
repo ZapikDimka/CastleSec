@@ -7,6 +7,7 @@ from pydantic import BaseModel
 class InventoryItemDto(BaseModel):
     name: str
     image: str
+    description: Optional[str] = None
 
 class InventoryDto(BaseModel):
     items: list[InventoryItemDto]
@@ -41,6 +42,7 @@ class GameStateDto(BaseModel):
     task_url: Optional[str] = None
     map_nodes: list[NodeSummaryDto]
     edges: list[EdgeDto]
+    ended: bool
 
 
 def node_to_dto(node: Node) -> MapNodeDto:
@@ -63,7 +65,8 @@ def node_to_summary_dto(node: Node, visited: bool) -> NodeSummaryDto:
 def inventory_item_to_dto(item: Item) -> InventoryItemDto:
     return InventoryItemDto(
         name=item.name,
-        image=item.image.root
+        image=item.image.root,
+        description=item.description
     )
 
 def inventory_to_dto(inventory: Inventory, ctx: Context) -> InventoryDto:
@@ -96,7 +99,9 @@ def _node_edges(node: Node) -> list[EdgeDto]:
 
 def map_data_to_dto(game: Game) -> tuple[list[NodeSummaryDto], list[EdgeDto]]:
     ctx = game.ctx
-    visited_ids = set(game.state.visited_nodes)
+    current_map = game.state.current_map.resolve(ctx)
+    current_map_node_ids = {node.id for node in current_map.nodes}
+    visited_ids = set(game.state.visited_nodes) & current_map_node_ids
 
     included_ids: set[str] = set()
     edges: list[EdgeDto] = []
@@ -127,5 +132,6 @@ def game_to_dto(game: Game) -> GameStateDto:
         message=game.state.message,
         task_url=game.task_url,
         map_nodes=map_nodes,
-        edges=edges
+        edges=edges,
+        ended=game.state.ended
     )

@@ -80,6 +80,7 @@ class SolveTaskFunction(BaseFunction):
     task: Ref[Task]
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
+    remove_on_success: bool = True
 
 class RemoveItemFunction(BaseFunction):
     type: Literal["RemoveItemFunction"] = "RemoveItemFunction"
@@ -136,10 +137,20 @@ ConditionType = Annotated[Union[HasItemCondition, NodeStateCondition, GameVariab
 class RandomBranch(BaseModel):
     weight: float = Field(gt=0)
     functions: list["FunctionType"]
+    once: bool = False
 
 class RandomFunction(BaseFunction):
     type: Literal["RandomFunction"] = "RandomFunction"
     branches: list[RandomBranch]
+
+class ChangeMapFunction(BaseFunction):
+    type: Literal["ChangeMapFunction"] = "ChangeMapFunction"
+    map: Ref[Map]
+    node: Ref[Node]
+
+class EndGameFunction(BaseFunction):
+    type: Literal["EndGameFunction"] = "EndGameFunction"
+    message: Optional[str] = None
 
 class ShowMessageFunction(BaseFunction):
     type: Literal["ShowMessageFunction"] = "ShowMessageFunction"
@@ -151,7 +162,7 @@ class ConditionalFunction(BaseFunction):
     on_success: list["FunctionType"] = Field(default_factory=list)
     on_failure: list["FunctionType"] = Field(default_factory=list)
 
-FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetGameVariableFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
+FunctionType = Annotated[Union[MoveFunction, PickUpItemFunction, RemoveItemFunction, SetNodeStateFunction, SetGameVariableFunction, SetTextFunction, SetImageFunction, SolveTaskFunction, ChangeMapFunction, EndGameFunction, ShowMessageFunction, ConditionalFunction, RandomFunction], Field(discriminator="type")]
 
 class Action(BaseModel):
     label: str

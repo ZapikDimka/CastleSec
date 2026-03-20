@@ -28,6 +28,7 @@ class Game:
 
         self._task: Optional[TaskRunner] = None
         self._task_callbacks: dict[str, list[BaseFunction]] = {"success": [], "failure": []}
+        self._task_once_action: Optional[tuple[Node, Action]] = None
         self._step()
 
     def _register_objects_to_context(self):
@@ -91,7 +92,11 @@ class Game:
             self._run_function(function)
 
         if action.once:
-            node.actions.remove(action)
+            solve_task_fn = next((f for f in action.functions if f.type == "SolveTaskFunction"), None)
+            if solve_task_fn and solve_task_fn.remove_on_success:
+                self._task_once_action = (node, action)
+            else:
+                node.actions.remove(action)
 
         self._step()
 
@@ -105,14 +110,20 @@ class Game:
             if res is None:
                 return self._actions
 
+            is_success = res.is_success()
             funcs_to_run = (
                 self._task_callbacks.get("success", [])
-                if res.is_success()
+                if is_success
                 else self._task_callbacks.get("failure", [])
             )
 
             self._task = None
             self._task_callbacks = {}
+
+            if is_success and self._task_once_action is not None:
+                once_node, once_action = self._task_once_action
+                once_node.actions.remove(once_action)
+            self._task_once_action = None
 
             for func in funcs_to_run:
                 self._run_function(func)
@@ -200,6 +211,17 @@ class Game:
 
                 self._task.run()
 
+            case "ChangeMapFunction":
+                self.state.current_map = function.map
+                self.state.current_node = function.node
+                if function.node.ref_id not in self.state.visited_nodes:
+                    self.state.visited_nodes.append(function.node.ref_id)
+
+            case "EndGameFunction":
+                self.state.ended = True
+                if function.message:
+                    self.state.message = function.message
+
             case "ShowMessageFunction":
                 self.state.message = function.message
 
@@ -212,6 +234,10 @@ class Game:
                         self._run_function(f)
 
             case "RandomFunction":
+                if not function.branches:
+                    return 
                 branch = random.choices(function.branches, weights=[b.weight for b in function.branches])[0]
+                if branch.once:
+                    function.branches.remove(branch)
                 for f in branch.functions:
                     self._run_function(f)
