@@ -27,12 +27,17 @@ class Item(BaseModel):
     name: str
     image: Ref[Asset]
 
+class Coords(BaseModel):
+    x: float
+    y: float
+
 class Node(BaseModel):
     id: str
     name: str
     text: str
     image: Ref[Asset]
     actions: list["Action"]
+    coords: Coords
 
 class Map(BaseModel):
     id: str

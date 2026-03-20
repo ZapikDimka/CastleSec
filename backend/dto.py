@@ -15,6 +15,7 @@ class MapNodeDto(BaseModel):
     name: str
     text: str
     image: str
+    coords: Coords
 
 class ActionDto(BaseModel):
     text: str
@@ -32,7 +33,8 @@ def node_to_dto(node: Node) -> MapNodeDto:
     return MapNodeDto(
         name=node.name,
         text=node.text,
-        image=node.image.root
+        image=node.image.root,
+        coords=node.coords
     )
 
 def inventory_item_to_dto(item: Item) -> InventoryItemDto:

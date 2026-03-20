@@ -17,6 +17,7 @@
           "name": "Dungeon Cell",
           "text": "You are in a damp cell.",
           "image": "img1.png",
+          "coords": {"x": 0, "y": 0},
           "actions": [
             {
               "label": "Pick up",
@@ -94,6 +95,7 @@
           "name": "Dark Hallway",
           "text": "It is too dark to see anything.",
           "image": "img2.png",
+          "coords": {"x": 1, "y": 0},
           "actions": [
             {
               "label": "Go back to the cell",
@@ -111,6 +113,7 @@
           "name": "Some Room",
           "text": "Some room text",
           "image": "img3.png",
+          "coords": {"x": 0, "y": 1},
           "actions": [
             {
               "label": "Go back to the cell",
