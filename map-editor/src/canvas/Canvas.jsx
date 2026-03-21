@@ -6,6 +6,7 @@ import EdgeLayer from './EdgeLayer';
 const MIN_ZOOM = 0.2;
 const MAX_ZOOM = 3.0;
 const ZOOM_SENSITIVITY = 0.001;
+const PAN_CLICK_SUPPRESS_DISTANCE = 3;
 
 export default function Canvas() {
     const state = useMapState();
@@ -16,6 +17,7 @@ export default function Canvas() {
     const [zoom, setZoom] = useState(1);
     const [isPanning, setIsPanning] = useState(false);
     const panStart = useRef({ x: 0, y: 0, panX: 0, panY: 0 });
+    const panGesture = useRef({ active: false, moved: false, pointerId: null });
 
     // ---- Context Menu ----
     const [contextMenu, setContextMenu] = useState(null);
@@ -27,6 +29,7 @@ export default function Canvas() {
             setIsPanning(true);
             setContextMenu(null);
             panStart.current = { x: e.clientX, y: e.clientY, panX: pan.x, panY: pan.y };
+            panGesture.current = { active: true, moved: false, pointerId: e.pointerId };
             containerRef.current?.setPointerCapture(e.pointerId);
         }
     }, [pan]);
@@ -35,6 +38,12 @@ export default function Canvas() {
         if (!isPanning) return;
         const dx = e.clientX - panStart.current.x;
         const dy = e.clientY - panStart.current.y;
+        if (!panGesture.current.moved) {
+            const dist = Math.hypot(dx, dy);
+            if (dist >= PAN_CLICK_SUPPRESS_DISTANCE) {
+                panGesture.current.moved = true;
+            }
+        }
         setPan({ x: panStart.current.panX + dx, y: panStart.current.panY + dy });
     }, [isPanning]);
 
@@ -42,11 +51,17 @@ export default function Canvas() {
         if (isPanning) {
             setIsPanning(false);
             containerRef.current?.releasePointerCapture(e.pointerId);
+            panGesture.current.active = false;
         }
     }, [isPanning]);
 
     // ---- Click on empty canvas = deselect ----
     const handleClick = useCallback((e) => {
+        if (panGesture.current.moved) {
+            // This click was produced by the end of a pan gesture.
+            panGesture.current.moved = false;
+            return;
+        }
         if (e.target === containerRef.current) {
             dispatch({ type: 'SELECT_NODE', payload: { id: null } });
             setContextMenu(null);

@@ -11,6 +11,10 @@ function createSnapshot(state) {
         root: state.root,
         nodes: state.nodes,
         nodePositions: state.nodePositions,
+        mapsById: state.mapsById,
+        mapOrder: state.mapOrder,
+        selectedMapId: state.selectedMapId,
+        topRootMapId: state.topRootMapId,
         _extraTopLevel: state._extraTopLevel,
     };
 }

@@ -62,7 +62,11 @@ export default function ItemPanel() {
 
 // Recursively count pickup/has_item references
 function countItemRefs(actions, counts) {
-    for (const action of actions) {
+    for (const action of actions || []) {
+        if (Array.isArray(action?.functions)) {
+            countItemRefsInFunctions(action.functions, counts);
+            continue;
+        }
         if (action.type === 'pickup' && action.item && counts[action.item] !== undefined) {
             counts[action.item]++;
         }
@@ -73,6 +77,26 @@ function countItemRefs(actions, counts) {
             if (action.action) {
                 countItemRefs([action.action], counts);
             }
+        }
+    }
+}
+
+function countItemRefsInFunctions(functions, counts) {
+    for (const fn of functions || []) {
+        if (!fn) continue;
+        if (fn.type === 'PickUpItemFunction' && fn.item && counts[fn.item] !== undefined) {
+            counts[fn.item]++;
+        }
+        if (fn.type === 'IfFunction') {
+            if (fn.condition?.item && counts[fn.condition.item] !== undefined) {
+                counts[fn.condition.item]++;
+            }
+            countItemRefsInFunctions(fn.then_functions || [], counts);
+            countItemRefsInFunctions(fn.else_functions || [], counts);
+        }
+        if (fn.type === 'SolveTaskFunction') {
+            countItemRefsInFunctions(fn.on_success || [], counts);
+            countItemRefsInFunctions(fn.on_failure || [], counts);
         }
     }
 }

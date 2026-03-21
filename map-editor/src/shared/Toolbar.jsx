@@ -11,6 +11,10 @@ export default function Toolbar() {
 
     const nodeCount = Object.keys(state.nodes).length;
     const itemCount = Object.keys(state.items).length;
+    const mapOrder = state.mapOrder || [];
+    const mapsById = state.mapsById || {};
+    const selectedMapId = state.selectedMapId;
+    const topRootMapId = state.topRootMapId;
     const canUndo = state.history?.past?.length > 0;
     const canRedo = state.history?.future?.length > 0;
 
@@ -43,6 +47,20 @@ export default function Toolbar() {
 
     const handleAddNode = () => {
         window.__mapEditorAddNode?.();
+    };
+
+    const handleMapChange = (e) => {
+        const id = e.target.value;
+        dispatch({ type: 'SELECT_MAP', payload: { id } });
+    };
+
+    const handleAddMap = () => {
+        dispatch({ type: 'ADD_MAP', payload: {} });
+    };
+
+    const handleTopRootMapChange = (e) => {
+        const id = e.target.value;
+        dispatch({ type: 'SET_TOP_ROOT_MAP', payload: { id } });
     };
 
     const runAction = (actionStr) => {
@@ -172,6 +190,45 @@ export default function Toolbar() {
             <div className="toolbar-separator" />
 
             <div className="toolbar-group">
+                <label className="toolbar-inline-label" htmlFor="map-select">Map</label>
+                <select
+                    id="map-select"
+                    className="toolbar-select"
+                    value={selectedMapId || ''}
+                    onChange={handleMapChange}
+                    aria-label="Active map"
+                >
+                    {mapOrder.map((id) => (
+                        <option key={id} value={id}>
+                            {id}
+                        </option>
+                    ))}
+                </select>
+                <button className="toolbar-btn" onClick={handleAddMap} title="Add map">
+                    ＋ Map
+                </button>
+            </div>
+
+            <div className="toolbar-group">
+                <label className="toolbar-inline-label" htmlFor="map-root-select">Entry</label>
+                <select
+                    id="map-root-select"
+                    className="toolbar-select"
+                    value={topRootMapId || selectedMapId || ''}
+                    onChange={handleTopRootMapChange}
+                    aria-label="Top-level root map"
+                >
+                    {mapOrder.map((id) => (
+                        <option key={id} value={id}>
+                            {id}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
+            <div className="toolbar-separator" />
+
+            <div className="toolbar-group">
                 <button className="toolbar-btn" onClick={handleAddNode} title="Add node at viewport center">
                     ＋ Add Node
                 </button>
@@ -187,7 +244,7 @@ export default function Toolbar() {
             <div className="toolbar-separator" />
 
             <div className="toolbar-status" style={{ marginLeft: '16px' }}>
-                {nodeCount} node{nodeCount !== 1 ? 's' : ''} · {itemCount} item{itemCount !== 1 ? 's' : ''}
+                {mapOrder.length} map{mapOrder.length !== 1 ? 's' : ''} · {nodeCount} node{nodeCount !== 1 ? 's' : ''} · {itemCount} item{itemCount !== 1 ? 's' : ''}
             </div>
 
             {pendingAction && (

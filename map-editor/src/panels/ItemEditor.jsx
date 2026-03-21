@@ -180,7 +180,11 @@ function getItemReferences(nodes, itemId) {
 }
 
 function findRefsInActions(actions, nodeId, itemId, refs) {
-    for (const action of actions) {
+    for (const action of actions || []) {
+        if (Array.isArray(action?.functions)) {
+            findRefsInFunctions(action.functions, nodeId, itemId, refs);
+            continue;
+        }
         if (action.type === 'pickup' && action.item === itemId) {
             refs.push({ nodeId, type: 'pickup' });
         }
@@ -191,6 +195,26 @@ function findRefsInActions(actions, nodeId, itemId, refs) {
             if (action.action) {
                 findRefsInActions([action.action], nodeId, itemId, refs);
             }
+        }
+    }
+}
+
+function findRefsInFunctions(functions, nodeId, itemId, refs) {
+    for (const fn of functions || []) {
+        if (!fn) continue;
+        if (fn.type === 'PickUpItemFunction' && fn.item === itemId) {
+            refs.push({ nodeId, type: 'pickup function' });
+        }
+        if (fn.type === 'IfFunction') {
+            if (fn.condition?.item === itemId) {
+                refs.push({ nodeId, type: `${fn.condition.type || 'if'} condition` });
+            }
+            findRefsInFunctions(fn.then_functions || [], nodeId, itemId, refs);
+            findRefsInFunctions(fn.else_functions || [], nodeId, itemId, refs);
+        }
+        if (fn.type === 'SolveTaskFunction') {
+            findRefsInFunctions(fn.on_success || [], nodeId, itemId, refs);
+            findRefsInFunctions(fn.on_failure || [], nodeId, itemId, refs);
         }
     }
 }

@@ -3,52 +3,71 @@
  * Node positions are persisted in the same file under `nodePositions`.
  */
 export function serialize(state) {
-    const { items, root, nodes, nodePositions, _extraTopLevel } = state;
+    const {
+        items,
+        root,
+        nodes,
+        nodePositions,
+        _extraTopLevel,
+        mapsById,
+        mapOrder,
+        selectedMapId,
+        topRootMapId,
+    } = state;
+    const engineSync = _extraTopLevel?._engineSync || {};
 
-    // 1. Serialize Items
-    const serializedItems = {};
-    for (const [itemId, item] of Object.entries(items)) {
-        const itemCopy = { ...item };
-        // Omit empty image
-        if (!itemCopy.image) {
-            delete itemCopy.image;
+    // 1. Serialize Items to new engine array shape
+    const serializedItems = Object.keys(items || {})
+        .sort()
+        .map((itemId) => {
+            const item = items[itemId] || {};
+            const itemCopy = { ...item, id: itemId };
+            // Omit empty image
+            if (!itemCopy.image) {
+                delete itemCopy.image;
+            }
+            return itemCopy;
+        });
+
+    const stripUnknownFlagsDeep = (value) => {
+        if (Array.isArray(value)) {
+            return value.map(stripUnknownFlagsDeep);
         }
-        serializedItems[itemId] = itemCopy;
-    }
+        if (!value || typeof value !== 'object') {
+            return value;
+        }
+        const out = {};
+        for (const [k, v] of Object.entries(value)) {
+            if (k === '_unknown') continue;
+            out[k] = stripUnknownFlagsDeep(v);
+        }
+        return out;
+    };
 
-    // 2. Serialize Nodes
-    const serializedNodes = {};
-    for (const [nodeId, node] of Object.entries(nodes)) {
-        const nodeCopy = { ...node };
+    // 2. Serialize Nodes to array shape
+    const serializedNodes = Object.keys(nodes || {})
+        .sort()
+        .map((nodeId) => {
+            const node = nodes[nodeId] || {};
+            const nodeCopy = { ...node, id: nodeId };
         // Omit empty image
         if (!nodeCopy.image) {
             delete nodeCopy.image;
         }
 
-        // Ensure actions is always an array and strip out any editor-only flags if we added any
+        // Ensure actions is always an array and strip out any editor-only flags.
         if (!Array.isArray(nodeCopy.actions)) {
             nodeCopy.actions = [];
         } else {
-            // Remove the _unknown flag we might have added during deserialization
-            nodeCopy.actions = nodeCopy.actions.map(action => {
-                const a = { ...action };
-                delete a._unknown;
-
-                // If it's an 'if' action, clean the condition too
-                if (a.type === 'if' && a.condition) {
-                    a.condition = { ...a.condition };
-                    delete a.condition._unknown;
-                }
-                return a;
-            });
+            nodeCopy.actions = stripUnknownFlagsDeep(nodeCopy.actions);
         }
 
-        serializedNodes[nodeId] = nodeCopy;
-    }
+            return nodeCopy;
+        });
 
     // 3. Assemble Game JSON
     const normalizedPositions = {};
-    for (const nodeId of Object.keys(nodes)) {
+    for (const nodeId of Object.keys(nodes || {})) {
         const pos = nodePositions?.[nodeId];
         if (!pos) continue;
         const x = Number(pos.x);
@@ -60,12 +79,54 @@ export function serialize(state) {
         };
     }
 
+    // Preserve unknown top-level fields while removing editor-only metadata.
+    const topLevelExtra = { ...(_extraTopLevel || {}) };
+    delete topLevelExtra._engineSync;
+
+    const fallbackActiveMapId = selectedMapId || engineSync.activeMapId || engineSync.topRootMapId || 'MAP_1';
+    const effectiveTopRootMapId = topRootMapId || engineSync.topRootMapId || fallbackActiveMapId;
+    const hasMapState = mapsById && typeof mapsById === 'object' && Array.isArray(mapOrder) && mapOrder.length > 0;
+
+    let maps;
+    if (hasMapState) {
+        maps = mapOrder
+            .map((mapId) => mapsById[mapId])
+            .filter(Boolean)
+            .map((map) => {
+                const mapNodes = map.id === fallbackActiveMapId
+                    ? serializedNodes
+                    : Object.keys(map.nodes || {})
+                        .sort()
+                        .map((nodeId) => ({ ...(map.nodes[nodeId] || {}), id: nodeId }));
+                return {
+                    id: map.id,
+                    root: map.id === fallbackActiveMapId ? root : map.root,
+                    nodes: mapNodes,
+                    ...(map._extra || {}),
+                };
+            });
+    } else {
+        const activeMapId = fallbackActiveMapId;
+        const activeMapExtra = engineSync.activeMapExtra && typeof engineSync.activeMapExtra === 'object'
+            ? engineSync.activeMapExtra
+            : {};
+        const otherMaps = Array.isArray(engineSync.otherMaps) ? engineSync.otherMaps : [];
+        const activeMap = {
+            id: activeMapId,
+            root,
+            nodes: serializedNodes,
+            ...activeMapExtra,
+        };
+        const preservedOthers = otherMaps.filter((m) => m && typeof m === 'object' && m.id !== activeMapId);
+        maps = [activeMap, ...preservedOthers];
+    }
+
     const gameData = {
+        root: effectiveTopRootMapId,
         items: serializedItems,
-        root,
-        nodes: serializedNodes,
+        maps,
         nodePositions: normalizedPositions,
-        ...(_extraTopLevel || {}) // spread unknown top-level keys
+        ...topLevelExtra
     };
 
     return {

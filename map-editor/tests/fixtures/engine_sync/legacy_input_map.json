@@ -1,0 +1,36 @@
+{
+  "items": {
+    "ITEM_key": { "name": "Key" },
+    "ITEM_badge": { "name": "Guard Badge" }
+  },
+  "root": "NODE_start",
+  "nodes": {
+    "NODE_start": {
+      "name": "Start",
+      "text": "Legacy room",
+      "actions": [
+        { "type": "move", "to": "NODE_hall" },
+        {
+          "type": "if",
+          "condition": { "type": "has_item", "item": "ITEM_key" },
+          "action": { "type": "move", "to": "NODE_secret" }
+        }
+      ]
+    },
+    "NODE_hall": {
+      "name": "Hall",
+      "text": "Main hall",
+      "actions": [{ "type": "pickup", "item": "ITEM_badge" }]
+    },
+    "NODE_secret": {
+      "name": "Secret",
+      "text": "Hidden room",
+      "actions": []
+    }
+  },
+  "nodePositions": {
+    "NODE_start": { "x": 0, "y": 0 },
+    "NODE_hall": { "x": 240, "y": 0 },
+    "NODE_secret": { "x": 420, "y": 140 }
+  }
+}

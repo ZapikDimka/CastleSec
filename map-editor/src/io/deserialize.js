@@ -20,45 +20,36 @@ export function deserialize(gameJsonString, editorJsonString) {
         }
     }
 
-    // 1. Extract known keys vs unknown top-level
-    const { items, root, nodes, nodePositions: embeddedNodePositions, ..._extraTopLevel } = gameData;
+    // 1. Extract known keys vs unknown top-level (supports both legacy and engine-sync shape)
+    const {
+        items,
+        root,
+        nodes,
+        maps,
+        nodePositions: embeddedNodePositions,
+        ...rawExtraTopLevel
+    } = gameData;
 
-    // Validate minimal structure
-    if (!nodes || typeof nodes !== 'object' || !root) {
-        throw new Error('Invalid map JSON: missing "nodes" object or "root" string.');
+    const engineSyncMeta = resolveEngineSyncMeta({ root, maps });
+    const sourceNodes = resolveNodeSource({ nodes, maps, engineSyncMeta });
+    const sourceRootNodeId = resolveRootNodeId({ root, engineSyncMeta });
+
+    if (!sourceNodes || typeof sourceNodes !== 'object' || !sourceRootNodeId) {
+        throw new Error('Invalid map JSON: expected either legacy {root,nodes} or engine-sync {root,maps[].nodes[]} structure.');
     }
 
-    // 2. Parse Items
-    const parsedItems = {};
-    for (const [itemId, item] of Object.entries(items || {})) {
-        parsedItems[itemId] = { ...item };
-    }
+    // 2. Parse Items (normalized by id)
+    const parsedItems = parseItemsToDict(items);
 
-    // 3. Parse Nodes & Actions
+    // 3. Parse Nodes & Actions (normalized by id)
     const parsedNodes = {};
-    const KNOWN_ACTION_TYPES = ['return', 'move', 'pickup', 'solve_task', 'if'];
-    const KNOWN_CONDITION_TYPES = ['has_item'];
 
-    for (const [nodeId, node] of Object.entries(nodes)) {
-        const parsedNode = { ...node };
+    for (const [nodeId, node] of Object.entries(sourceNodes)) {
+        const parsedNode = { ...node, id: nodeId };
 
-        // Ensure actions exist and map them to flag unknown types
+        // Ensure actions exist and migrate legacy action rows to action-choice model.
         if (Array.isArray(parsedNode.actions)) {
-            parsedNode.actions = parsedNode.actions.map(action => {
-                const a = { ...action };
-
-                if (!KNOWN_ACTION_TYPES.includes(a.type)) {
-                    a._unknown = true;
-                }
-
-                if (a.type === 'if' && a.condition) {
-                    a.condition = { ...a.condition };
-                    if (!KNOWN_CONDITION_TYPES.includes(a.condition.type)) {
-                        a.condition._unknown = true;
-                    }
-                }
-                return a;
-            });
+            parsedNode.actions = parsedNode.actions.map((rawAction) => toActionChoice(rawAction));
         } else {
             parsedNode.actions = [];
         }
@@ -67,19 +58,198 @@ export function deserialize(gameJsonString, editorJsonString) {
     }
 
     // 4. Resolve Positions
-    const fallbackPositions = autoLayout(root, parsedNodes);
+    const fallbackPositions = autoLayout(sourceRootNodeId, parsedNodes);
     const embeddedResolved = sanitizeNodePositions(embeddedNodePositions, parsedNodes);
     const sidecarResolved = sanitizeNodePositions(editorData?.nodePositions, parsedNodes);
     const basePositions = Object.keys(embeddedResolved).length > 0 ? embeddedResolved : sidecarResolved;
     const nodePositions = mergeMissingPositions(basePositions, fallbackPositions, parsedNodes);
 
+    const _extraTopLevel = {
+        ...rawExtraTopLevel,
+        ...(engineSyncMeta ? { _engineSync: engineSyncMeta } : {}),
+    };
+
     return {
         items: parsedItems,
-        root,
+        root: sourceRootNodeId,
         nodes: parsedNodes,
         nodePositions,
         _extraTopLevel
     };
+}
+
+function parseItemsToDict(rawItems) {
+    const parsedItems = {};
+
+    // New shape: items[]
+    if (Array.isArray(rawItems)) {
+        for (const rawItem of rawItems) {
+            if (!rawItem || typeof rawItem !== 'object' || !rawItem.id) continue;
+            const { id, ...itemFields } = rawItem;
+            parsedItems[id] = { id, ...itemFields };
+        }
+        return parsedItems;
+    }
+
+    // Legacy shape: items{}
+    if (rawItems && typeof rawItems === 'object') {
+        for (const [itemId, item] of Object.entries(rawItems)) {
+            parsedItems[itemId] = { id: itemId, ...item };
+        }
+    }
+
+    return parsedItems;
+}
+
+function toActionChoice(rawAction) {
+    if (!rawAction || typeof rawAction !== 'object') {
+        return { label: 'Action', once: false, functions: [] };
+    }
+
+    // Already in action-choice shape.
+    if (typeof rawAction.label === 'string' && Array.isArray(rawAction.functions)) {
+        return {
+            ...rawAction,
+            once: Boolean(rawAction.once),
+            functions: rawAction.functions.map((fn) => toKnownOrUnknownFunction(fn)),
+        };
+    }
+
+    const fn = legacyActionToFunction(rawAction);
+    return {
+        label: legacyActionToLabel(rawAction),
+        once: false,
+        functions: fn ? [toKnownOrUnknownFunction(fn)] : [],
+    };
+}
+
+function toKnownOrUnknownFunction(rawFunction) {
+    const fn = { ...(rawFunction || {}) };
+    const known = [
+        'MoveFunction',
+        'PickUpItemFunction',
+        'SolveTaskFunction',
+        'SetVariableFunction',
+        'IfFunction',
+        'ShowHintTextFunction',
+        'InspectFunction',
+    ];
+
+    if (fn.type && !known.includes(fn.type)) {
+        fn._unknown = true;
+    }
+
+    if (fn.type === 'IfFunction' && fn.condition && typeof fn.condition === 'object') {
+        const knownConditions = ['has_item', 'item_used', 'item_not_collected'];
+        if (fn.condition.type && !knownConditions.includes(fn.condition.type)) {
+            fn.condition = { ...fn.condition, _unknown: true };
+        }
+    }
+
+    return fn;
+}
+
+function legacyActionToLabel(action) {
+    switch (action.type) {
+        case 'move':
+            return action.to ? `Move to ${action.to}` : 'Move';
+        case 'pickup':
+            return action.item ? `Pick up ${action.item}` : 'Pick up item';
+        case 'solve_task':
+            return action.name ? `Solve: ${action.name}` : 'Solve task';
+        case 'if':
+            return 'Conditional action';
+        case 'return':
+            return 'Return (set destination)';
+        default:
+            return action.type ? `Legacy: ${action.type}` : 'Action';
+    }
+}
+
+function legacyActionToFunction(action) {
+    switch (action.type) {
+        case 'move':
+            return { type: 'MoveFunction', to: action.to || '' };
+        case 'pickup':
+            return { type: 'PickUpItemFunction', item: action.item || '' };
+        case 'solve_task':
+            return {
+                type: 'SolveTaskFunction',
+                task: action.name || '',
+                on_success: [],
+                on_failure: [],
+            };
+        case 'if': {
+            const nested = action.action ? legacyActionToFunction(action.action) : null;
+            return {
+                type: 'IfFunction',
+                condition: { ...(action.condition || { type: 'has_item', item: '' }) },
+                then_functions: nested ? [nested] : [],
+                else_functions: [],
+            };
+        }
+        case 'return':
+            return { type: 'MoveFunction', to: '' };
+        default:
+            return { type: 'LegacyFunction', raw: { ...action } };
+    }
+}
+
+function resolveEngineSyncMeta({ root, maps }) {
+    if (!Array.isArray(maps) || maps.length === 0) return null;
+
+    const activeMapId = typeof root === 'string' && maps.some((m) => m?.id === root)
+        ? root
+        : maps[0]?.id;
+    const activeMap = maps.find((m) => m?.id === activeMapId) || maps[0];
+    if (!activeMap || !activeMap.id) return null;
+
+    const { id: _ignoreId, root: _ignoreRoot, nodes: _ignoreNodes, ...activeMapExtra } = activeMap;
+    const otherMaps = maps.filter((m) => m?.id && m.id !== activeMap.id);
+
+    return {
+        activeMapId: activeMap.id,
+        topRootMapId: typeof root === 'string' ? root : activeMap.id,
+        activeMapRootNodeId: typeof activeMap.root === 'string' ? activeMap.root : null,
+        activeMapExtra,
+        otherMaps,
+    };
+}
+
+function resolveNodeSource({ nodes, maps, engineSyncMeta }) {
+    // Legacy shape
+    if (nodes && typeof nodes === 'object' && !Array.isArray(nodes)) {
+        return nodes;
+    }
+
+    // New shape
+    if (!engineSyncMeta || !Array.isArray(maps)) {
+        return null;
+    }
+
+    const activeMap = maps.find((m) => m?.id === engineSyncMeta.activeMapId);
+    if (!activeMap || !Array.isArray(activeMap.nodes)) {
+        return null;
+    }
+
+    const normalized = {};
+    for (const rawNode of activeMap.nodes) {
+        if (!rawNode || typeof rawNode !== 'object' || !rawNode.id) continue;
+        const { id, ...nodeFields } = rawNode;
+        normalized[id] = { ...nodeFields };
+    }
+    return normalized;
+}
+
+function resolveRootNodeId({ root, engineSyncMeta }) {
+    // Legacy shape root points to node id.
+    if (!engineSyncMeta) {
+        return typeof root === 'string' ? root : null;
+    }
+
+    // New shape root points to map id, map.root points to node id.
+    const mapRootNodeId = engineSyncMeta?.activeMapRootNodeId;
+    return typeof mapRootNodeId === 'string' ? mapRootNodeId : null;
 }
 
 function sanitizeNodePositions(rawPositions, nodes) {

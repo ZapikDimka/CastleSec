@@ -3,69 +3,94 @@ import { useMapState, useMapDispatch } from '../state/MapContext';
 import ActionEditor from './ActionEditor';
 import ConfirmDialog from '../shared/ConfirmDialog';
 
-const ACTION_TYPES = [
-    { type: 'move', label: '↗ Move', color: 'var(--accent)' },
-    { type: 'return', label: '↩ Return', color: 'var(--success)' },
-    { type: 'pickup', label: '📦 Pickup', color: 'var(--warning)' },
-    { type: 'solve_task', label: '✓ Solve Task', color: '#b39ddb' },
-    { type: 'if', label: '❓ If', color: 'var(--edge-conditional-color)' },
-];
-
-const TYPE_DEFAULTS = {
-    return: { type: 'return' },
-    move: { type: 'move', to: '' },
-    pickup: { type: 'pickup', item: '' },
-    solve_task: { type: 'solve_task', name: '' },
-    if: { type: 'if', condition: { type: 'has_item', item: '' }, action: { type: 'return' } },
-    custom: { type: 'custom' },
+const ACTION_DEFAULT = {
+    label: 'New action choice',
+    once: false,
+    functions: [],
 };
 
 function getActionSummary(action) {
-    if (action._unknown || action.type === 'custom') return `⚠️ Unknown: ${action.type}`;
-    switch (action.type) {
-        case 'return': return 'Return';
-        case 'move': return `move → ${action.to || '?'}`;
-        case 'pickup': return `pickup → ${action.item || '?'}`;
-        case 'solve_task': return `solve "${action.name || '?'}"`;
-        case 'if': return `if ${action.condition?.type || '?'}`;
-        default: return `${action.type || 'unknown'}`;
-    }
+    const label = action?.label?.trim() || '(missing label)';
+    const count = Array.isArray(action?.functions) ? action.functions.length : 0;
+    const once = action?.once ? ' · once' : '';
+    return `${label} · ${count} function${count === 1 ? '' : 's'}${once}`;
 }
 
-function getTypeBadge(type, action) {
-    if (action?._unknown || type === 'custom') {
-        return { label: '⚠️', color: 'var(--warning)', isUnknown: true };
+function getFunctionError(fn, refs = {}) {
+    const { nodes = {}, items = {} } = refs;
+    if (!fn || typeof fn !== 'object') return null;
+    if (fn.type === 'MoveFunction') {
+        if (!fn.to?.trim()) return 'Target node is required.';
+        if (!nodes[fn.to]) return `Target node "${fn.to}" does not exist.`;
     }
-    const meta = ACTION_TYPES.find(t => t.type === type);
-    return {
-        label: meta?.label?.charAt(0) || '?',
-        color: meta?.color || 'var(--text-secondary)',
-        isUnknown: false
-    };
+    if (fn.type === 'PickUpItemFunction') {
+        if (!fn.item?.trim()) return 'Item is required.';
+        if (!items[fn.item]) return `Item "${fn.item}" does not exist.`;
+    }
+    if (fn.type === 'IfFunction') {
+        const type = fn.condition?.type;
+        const known = ['has_item', 'item_used', 'item_not_collected'];
+        if (!known.includes(type)) return 'Condition type is required.';
+        if (!fn.condition?.item?.trim()) return 'Condition item is required.';
+        if (!items[fn.condition.item]) return `Condition item "${fn.condition.item}" does not exist.`;
+        if (!Array.isArray(fn.then_functions)) return 'then_functions must be an array.';
+        if (!Array.isArray(fn.else_functions)) return 'else_functions must be an array.';
+    }
+    if (fn.type === 'SolveTaskFunction') {
+        if (!fn.task?.trim()) return 'Task is required.';
+        if (!Array.isArray(fn.on_success)) return 'on_success must be an array.';
+        if (!Array.isArray(fn.on_failure)) return 'on_failure must be an array.';
+    }
+    if (fn.type === 'ShowHintTextFunction' && !fn.text?.trim()) {
+        return 'Hint text is required.';
+    }
+    if (fn.type === 'InspectFunction') {
+        if (!fn.title?.trim()) return 'Inspect title is required.';
+        if (!fn.content?.trim()) return 'Inspect content is required.';
+    }
+    if (fn.type === 'SetVariableFunction') {
+        if (!fn.variable?.trim()) return 'Variable is required.';
+        if (!fn.value?.trim()) return 'Value is required.';
+    }
+    return null;
+}
+
+function findFirstFunctionError(functions, refs) {
+    if (!Array.isArray(functions)) return null;
+
+    for (let i = 0; i < functions.length; i++) {
+        const fn = functions[i];
+        const directError = getFunctionError(fn, refs);
+        if (directError) return `Function ${i + 1}: ${directError}`;
+
+        if (fn?.type === 'IfFunction') {
+            const thenError = findFirstFunctionError(fn.then_functions, refs);
+            if (thenError) return `Function ${i + 1} (then): ${thenError}`;
+
+            const elseError = findFirstFunctionError(fn.else_functions, refs);
+            if (elseError) return `Function ${i + 1} (else): ${elseError}`;
+        }
+
+        if (fn?.type === 'SolveTaskFunction') {
+            const successError = findFirstFunctionError(fn.on_success, refs);
+            if (successError) return `Function ${i + 1} (on_success): ${successError}`;
+
+            const failureError = findFirstFunctionError(fn.on_failure, refs);
+            if (failureError) return `Function ${i + 1} (on_failure): ${failureError}`;
+        }
+    }
+
+    return null;
 }
 
 function getActionError(action, state) {
-    if (action.type === 'move') {
-        if (!action.to) return `Target node is missing`;
-        if (!state.nodes[action.to]) return `Node "${action.to}" not found`;
-    }
-    if (action.type === 'pickup') {
-        if (!action.item) return `Item is missing`;
-        if (!state.items[action.item]) return `Item "${action.item}" not found`;
-    }
-    if (action.type === 'if') {
-        if (action.condition?.type === 'has_item') {
-            if (!action.condition.item) return `Condition item is missing`;
-            if (!state.items[action.condition.item]) return `Condition item "${action.condition.item}" not found`;
-        }
-        if (action.action) {
-            const nested = Array.isArray(action.action) ? action.action : [action.action];
-            for (const a of nested) {
-                const err = getActionError(a, state);
-                if (err) return err;
-            }
-        }
-    }
+    if (!action?.label?.trim()) return 'Label is required';
+    if (!Array.isArray(action?.functions)) return 'Functions must be an array';
+    const functionError = findFirstFunctionError(action.functions, {
+        nodes: state?.nodes || {},
+        items: state?.items || {},
+    });
+    if (functionError) return functionError;
     return null;
 }
 
@@ -73,7 +98,6 @@ export default function ActionList({ nodeId, actions }) {
     const state = useMapState();
     const dispatch = useMapDispatch();
     const [expandedIndex, setExpandedIndex] = useState(null);
-    const [showAddMenu, setShowAddMenu] = useState(false);
     const [deleteIndex, setDeleteIndex] = useState(null);
 
     // --- Drag reorder state ---
@@ -81,12 +105,11 @@ export default function ActionList({ nodeId, actions }) {
     const [dragOverIndex, setDragOverIndex] = useState(null);
     const dragStartY = useRef(0);
 
-    const handleAdd = useCallback((type) => {
+    const handleAdd = useCallback(() => {
         dispatch({
             type: 'ADD_ACTION',
-            payload: { nodeId, action: { ...TYPE_DEFAULTS[type] } },
+            payload: { nodeId, action: { ...ACTION_DEFAULT } },
         });
-        setShowAddMenu(false);
         setExpandedIndex(actions.length); // expand the newly added action
     }, [dispatch, nodeId, actions.length]);
 
@@ -154,14 +177,12 @@ export default function ActionList({ nodeId, actions }) {
             )}
 
             {actions.map((action, i) => {
-                const badge = getTypeBadge(action.type, action);
                 const isExpanded = expandedIndex === i;
                 const isDragging = dragIndex === i;
                 const isDragOver = dragOverIndex === i && dragIndex !== i;
                 const actionError = getActionError(action, state);
 
                 let rowClass = 'action-row';
-                if (badge.isUnknown) rowClass += ' action-row--unknown';
                 if (isDragging) rowClass += ' action-row--dragging';
                 if (isDragOver) rowClass += ' action-row--drag-over';
                 if (actionError) rowClass += ' action-row--error';
@@ -181,12 +202,6 @@ export default function ActionList({ nodeId, actions }) {
                             onClick={() => setExpandedIndex(isExpanded ? null : i)}
                         >
                             <span className="action-row__drag" title="Drag to reorder">⠿</span>
-                            <span
-                                className="action-row__badge"
-                                style={{ backgroundColor: badge.color }}
-                            >
-                                {action.type}
-                            </span>
                             <span className="action-row__summary">
                                 {getActionSummary(action)}
                             </span>
@@ -201,7 +216,7 @@ export default function ActionList({ nodeId, actions }) {
                             <button
                                 className="action-row__delete"
                                 onClick={(e) => { e.stopPropagation(); setDeleteIndex(i); }}
-                                title="Delete action"
+                                title="Delete action choice"
                             >
                                 ×
                             </button>
@@ -211,8 +226,6 @@ export default function ActionList({ nodeId, actions }) {
                             <div className="action-row__body">
                                 <ActionEditor
                                     action={action}
-                                    nodeId={nodeId}
-                                    index={i}
                                     onChange={(updated) => handleChange(i, updated)}
                                 />
                             </div>
@@ -225,38 +238,17 @@ export default function ActionList({ nodeId, actions }) {
             <div className="action-list__add-wrapper">
                 <button
                     className="action-list__add-btn"
-                    onClick={() => setShowAddMenu(!showAddMenu)}
+                    onClick={handleAdd}
                 >
-                    + Add Action
+                    + Add Action Choice
                 </button>
-
-                {showAddMenu && (
-                    <div className="action-list__add-menu">
-                        {ACTION_TYPES.map(({ type, label }) => (
-                            <button
-                                key={type}
-                                className="action-list__add-option"
-                                onClick={() => handleAdd(type)}
-                            >
-                                {label}
-                            </button>
-                        ))}
-                        <div className="action-list__add-divider" style={{ height: 1, backgroundColor: 'var(--border)', margin: '4px 0' }} />
-                        <button
-                            className="action-list__add-option"
-                            onClick={() => handleAdd('custom')}
-                        >
-                            ⚙️ Custom / Raw JSON
-                        </button>
-                    </div>
-                )}
             </div>
 
             {/* Delete Confirmation */}
             {deleteIndex !== null && (
                 <ConfirmDialog
-                    title="Delete Action"
-                    message={`Delete this ${actions[deleteIndex]?.type || 'unknown'} action?`}
+                    title="Delete Action Choice"
+                    message={`Delete "${actions[deleteIndex]?.label || 'this action choice'}"?`}
                     confirmLabel="Delete"
                     danger
                     onConfirm={handleDeleteConfirm}

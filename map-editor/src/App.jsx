@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapProvider } from './state/MapContext';
 import { useMapState, useMapDispatch } from './state/MapContext';
 import { openMapFile, saveMapFile, saveAsMapFile } from './io/fileIO';
@@ -12,6 +12,7 @@ function AppContent() {
   const state = useMapState();
   const dispatch = useMapDispatch();
   const { selectedNodeId, selectedItemId, isDirty } = state;
+  const appBodyRef = useRef(null);
 
   const [fullscreenImageUrl, setFullscreenImageUrl] = useState(null);
 
@@ -92,58 +93,143 @@ function AppContent() {
 
   // Track which tab the user explicitly picked
   const [activeTab, setActiveTab] = useState('nodes');
+  const PANEL_DEFAULT_WIDTH = 320;
+  const PANEL_MIN_WIDTH = 240;
+  const PANEL_MAX_WIDTH = 720;
 
-  // Auto-switch tab based on selection
-  const effectiveTab =
-    selectedNodeId ? 'nodes' :
-      selectedItemId ? 'items' :
-        activeTab;
+  const clampPanelWidth = useCallback((value) => {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return PANEL_DEFAULT_WIDTH;
+
+    const bodyRect = appBodyRef.current?.getBoundingClientRect();
+    const dynamicMax = bodyRect
+      ? Math.max(PANEL_MIN_WIDTH, Math.min(PANEL_MAX_WIDTH, Math.round(bodyRect.width * 0.7)))
+      : PANEL_MAX_WIDTH;
+
+    return Math.max(PANEL_MIN_WIDTH, Math.min(dynamicMax, Math.round(numeric)));
+  }, []);
+
+  const persistedPanelWidth = clampPanelWidth(state?._extraTopLevel?._editor?.sidePanelWidth);
+  const [panelWidth, setPanelWidth] = useState(persistedPanelWidth);
+  const panelWidthRef = useRef(persistedPanelWidth);
+
+  useEffect(() => {
+    setPanelWidth(persistedPanelWidth);
+    panelWidthRef.current = persistedPanelWidth;
+  }, [persistedPanelWidth]);
+
+  useEffect(() => {
+    panelWidthRef.current = panelWidth;
+  }, [panelWidth]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setPanelWidth((prev) => clampPanelWidth(prev));
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [clampPanelWidth]);
+
+  // Auto-switch tab when user selects a node/item from canvas/panel actions.
+  useEffect(() => {
+    if (selectedNodeId) {
+      setActiveTab('nodes');
+    }
+  }, [selectedNodeId]);
+
+  useEffect(() => {
+    if (selectedItemId) {
+      setActiveTab('items');
+    }
+  }, [selectedItemId]);
+
+  const effectiveTab = activeTab;
 
   const showPanel = selectedNodeId !== null || selectedItemId !== null || activeTab === 'items';
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
-    if (tab === 'nodes' && selectedItemId) {
-      dispatch({ type: 'SELECT_ITEM', payload: { id: null } });
-    }
-    if (tab === 'items' && selectedNodeId) {
-      dispatch({ type: 'SELECT_NODE', payload: { id: null } });
-    }
   };
+
+  const handleResizeStart = useCallback((event) => {
+    event.preventDefault();
+
+    const getClientX = (e) => (e.touches && e.touches[0] ? e.touches[0].clientX : e.clientX);
+
+    const handleMove = (e) => {
+      const bodyRect = appBodyRef.current?.getBoundingClientRect();
+      if (!bodyRect) return;
+      const clientX = getClientX(e);
+      const nextWidth = clampPanelWidth(bodyRect.right - clientX);
+      setPanelWidth(nextWidth);
+    };
+
+    const handleEnd = () => {
+      document.body.classList.remove('is-resizing-panel');
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleEnd);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleEnd);
+
+      const nextWidth = clampPanelWidth(panelWidthRef.current);
+      if (nextWidth !== persistedPanelWidth) {
+        dispatch({
+          type: 'SET_EDITOR_CONFIG',
+          payload: { sidePanelWidth: nextWidth },
+        });
+      }
+    };
+
+    document.body.classList.add('is-resizing-panel');
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleEnd);
+    window.addEventListener('touchmove', handleMove, { passive: true });
+    window.addEventListener('touchend', handleEnd);
+  }, [clampPanelWidth, dispatch, persistedPanelWidth]);
 
   return (
     <div className="app">
       <Toolbar />
-      <div className="app-body">
+      <div className="app-body" ref={appBodyRef}>
         <Canvas />
         {showPanel && (
-          <div className="side-panel-container">
-            {/* Tab Bar */}
-            <div className="panel-tabs">
-              <button
-                className={`panel-tab ${effectiveTab === 'nodes' ? 'panel-tab--active' : ''}`}
-                onClick={() => handleTabChange('nodes')}
-              >
-                Nodes
-              </button>
-              <button
-                className={`panel-tab ${effectiveTab === 'items' ? 'panel-tab--active' : ''}`}
-                onClick={() => handleTabChange('items')}
-              >
-                Items
-              </button>
-            </div>
-
-            {/* Panel Content */}
-            {effectiveTab === 'nodes' && selectedNodeId && <NodeEditor />}
-            {effectiveTab === 'nodes' && !selectedNodeId && (
-              <div className="panel">
-                <div className="panel__body">
-                  <div className="panel__placeholder">Select a node on the canvas to edit it</div>
-                </div>
+          <div className="side-panel-shell" style={{ width: `${panelWidth}px` }}>
+            <div
+              className="side-panel-resizer"
+              role="separator"
+              aria-orientation="vertical"
+              aria-label="Resize side panel"
+              onMouseDown={handleResizeStart}
+              onTouchStart={handleResizeStart}
+            />
+            <div className="side-panel-container">
+              {/* Tab Bar */}
+              <div className="panel-tabs">
+                <button
+                  className={`panel-tab ${effectiveTab === 'nodes' ? 'panel-tab--active' : ''}`}
+                  onClick={() => handleTabChange('nodes')}
+                >
+                  Nodes
+                </button>
+                <button
+                  className={`panel-tab ${effectiveTab === 'items' ? 'panel-tab--active' : ''}`}
+                  onClick={() => handleTabChange('items')}
+                >
+                  Items
+                </button>
               </div>
-            )}
-            {effectiveTab === 'items' && <ItemPanel />}
+
+              {/* Panel Content */}
+              {effectiveTab === 'nodes' && selectedNodeId && <NodeEditor />}
+              {effectiveTab === 'nodes' && !selectedNodeId && (
+                <div className="panel">
+                  <div className="panel__body">
+                    <div className="panel__placeholder">Select a node on the canvas to edit it</div>
+                  </div>
+                </div>
+              )}
+              {effectiveTab === 'items' && <ItemPanel />}
+            </div>
           </div>
         )}
       </div>
