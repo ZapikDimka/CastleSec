@@ -5,6 +5,7 @@ import re
 import textwrap
 
 from castle_sec_game.game.game import Game
+from castle_sec_game.game.utils import interpolate, build_context
 
 BOLD, CYAN, YELLOW, GREEN, RESET = "\033[1m", "\033[96m", "\033[93m", "\033[92m", "\033[0m"
 
@@ -26,15 +27,19 @@ def display_node(game: Game):
     node = game.current_node
     actions = game.actions
     inventory = [item.resolve(game.ctx) for item in game.inventory.items]
+    variables = build_context(game)
 
     g_width = 52
     i_width = 25
     content_width = g_width - 4
 
-    node_name = node.name
-    node_text = node.text
+    node_name = interpolate(node.name, variables)
+    node_text = interpolate(node.text, variables)
+    map_name = game.state.current_map.resolve(game.ctx).name
 
     left = [f"{BOLD}{CYAN}╔═{'═' * content_width}═╗{RESET}"]
+    left.append(draw_line(map_name.center(content_width), g_width))
+    left.append(f"{BOLD}{CYAN}╠═{'═' * content_width}═╣{RESET}")
 
     for line in textwrap.wrap(node_name, content_width):
         left.append(draw_line(line.center(content_width), g_width))
@@ -46,12 +51,19 @@ def display_node(game: Game):
 
     left.append(draw_line("", g_width))
 
+    if game.state.message:
+        for line in textwrap.wrap(interpolate(game.state.message, variables), content_width):
+            left.append(draw_line(f"{YELLOW}{line}{RESET}", g_width))
+        left.append(draw_line("", g_width))
+
     if game.is_solving_task:
         left.append(draw_line(f"{YELLOW}Solving task...{RESET}", g_width))
+        if game.task_url:
+            left.append(draw_line(f"{CYAN}{game.task_url}{RESET}", g_width))
     else:
         left.append(draw_line(f"{BOLD}{YELLOW}Available Actions:{RESET}", g_width))
         for i, action in enumerate(actions):
-            label = action.label
+            label = interpolate(action.label, variables)
             prefix = f"[{i}] "
             prefix_len = len(prefix)
 
@@ -78,7 +90,7 @@ def display_node(game: Game):
     else:
         for item in inventory:
             # Wrap inventory items to prevent breaking the right panel
-            for line in textwrap.wrap(item.name, i_width - 4):
+            for line in textwrap.wrap(interpolate(item.name, variables), i_width - 4):
                 item_line = line.center(i_width - 4)
                 right.append(f"{BOLD}{YELLOW}║{RESET} {item_line} {BOLD}{YELLOW}║{RESET}")
 

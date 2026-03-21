@@ -10,13 +10,15 @@
   "maps": [
     {
       "id": "MainMap",
+      "name": "Main Map",
       "root": "cell_01",
       "nodes": [
         {
           "id": "cell_01",
           "name": "Dungeon Cell",
-          "text": "You are in a damp cell.",
+          "text": "You are in a damp cell. (Called {node.name} in {map.name})",
           "image": "img1.png",
+          "coords": {"x": 0, "y": 0},
           "actions": [
             {
               "label": "Pick up",
@@ -34,9 +36,9 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "test",
-                  "on_success": [],
-                  "on_failure": []
+                  "task": "test_web",
+                  "on_success": [{"type": "ShowMessageFunction", "message": "Task solved successfully!"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "Task failed. Try again."}]
                 }
               ]
             },
@@ -44,7 +46,7 @@
               "label": "Kick the door open",
               "functions": [
                 {
-                  "type": "SetVariableFunction",
+                  "type": "SetTextFunction",
                   "target_node": "cell_01",
                   "variable": "text",
                   "value": "You are in a damp cell. The iron door is broken off its hinges."
@@ -52,7 +54,13 @@
               ]
             },
             {
-              "label": "Walk through the door",
+              "label": "Walk through the door %",
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "dog_shit"
+                }
+              ],
               "functions": [
                 {
                   "type": "MoveFunction",
@@ -69,6 +77,17 @@
                   "to": "room_01"
                 }
               ]
+            },
+            {
+              "label": "Try the heavy door",
+              "functions": [
+                {
+                  "type": "ConditionalFunction",
+                  "condition": {"type": "HasItemCondition", "item": "dog_shit"},
+                  "on_success": [{"type": "MoveFunction", "to": "hallway_01"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "The door won't budge."}]
+                }
+              ]
             }
           ]
         },
@@ -77,6 +96,7 @@
           "name": "Dark Hallway",
           "text": "It is too dark to see anything.",
           "image": "img2.png",
+          "coords": {"x": 1, "y": 0},
           "actions": [
             {
               "label": "Go back to the cell",
@@ -94,6 +114,7 @@
           "name": "Some Room",
           "text": "Some room text",
           "image": "img3.png",
+          "coords": {"x": 0, "y": 1},
           "actions": [
             {
               "label": "Go back to the cell",
