@@ -1,80 +1,133 @@
 {
-  "items": {
-    "ITEM_dog_shit": {
+  "items": [
+    {
+      "id": "dog_shit",
       "name": "Dog Shit",
       "image": "item_icon_placeholder.png"
-    },
-    "ITEM_key": {
-      "name": "Key",
-      "image": "item_icon_placeholder.png"
-    },
-    "ITEM_golden_loaf": {
-      "name": "Golden Loaf",
-      "image": "item_icon_placeholder.png"
     }
-  },
-  "root": "NODE_root",
-  "nodes": {
-    "NODE_root": {
-      "name": "Root Node",
-      "text": "You see a root.",
-      "image": "img1.png",
-      "actions": [
+  ],
+  "root": "MainMap",
+  "maps": [
+    {
+      "id": "MainMap",
+      "name": "Main Map",
+      "root": "cell_01",
+      "nodes": [
         {
-          "type": "return"
+          "id": "cell_01",
+          "name": "Dungeon Cell",
+          "text": "You are in a damp cell. (Called {node.name} in {map.name})",
+          "image": "img1.png",
+          "coords": {"x": 0, "y": 0},
+          "actions": [
+            {
+              "label": "Pick up",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "dog_shit"
+                }
+              ]
+            },
+            {
+              "label": "Solve task",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "test_web",
+                  "on_success": [{"type": "ShowMessageFunction", "message": "Task solved successfully!"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "Task failed. Try again."}]
+                }
+              ]
+            },
+            {
+              "label": "Kick the door open",
+              "functions": [
+                {
+                  "type": "SetTextFunction",
+                  "target_node": "cell_01",
+                  "variable": "text",
+                  "value": "You are in a damp cell. The iron door is broken off its hinges."
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door %",
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "dog_shit"
+                }
+              ],
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "hallway_01"
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "label": "Walk to some room",
+                  "to": "room_01"
+                }
+              ]
+            },
+            {
+              "label": "Try the heavy door",
+              "functions": [
+                {
+                  "type": "ConditionalFunction",
+                  "condition": {"type": "HasItemCondition", "item": "dog_shit"},
+                  "on_success": [{"type": "MoveFunction", "to": "hallway_01"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "The door won't budge."}]
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "move",
-          "to": "NODE_a"
+          "id": "hallway_01",
+          "name": "Dark Hallway",
+          "text": "It is too dark to see anything.",
+          "image": "img2.png",
+          "coords": {"x": 1, "y": 0},
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
         },
         {
-          "type": "move",
-          "to": "NODE_b"
-        },
-        {
-          "type": "solve_task",
-          "name": "test"
-        }
-      ]
-    },
-    "NODE_a": {
-      "name": "A Node",
-      "text": "Hello, Leatherman",
-      "image": "img2.png",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_key"
-        }
-      ]
-    },
-    "NODE_b": {
-      "name": "B Node",
-      "text": "You encounter node B",
-      "image": "img3.png",
-      "actions": [
-        {
-          "type": "return"
-        },
-        {
-          "type": "pickup",
-          "item": "ITEM_dog_shit"
-        },
-        {
-          "type": "if",
-          "condition": {
-            "type": "has_item",
-            "item": "ITEM_dog_shit"
-          },
-          "action": {
-            "type": "move",
-            "to": "NODE_a"
-          }
+          "id": "room_01",
+          "name": "Some Room",
+          "text": "Some room text",
+          "image": "img3.png",
+          "coords": {"x": 0, "y": 1},
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
         }
       ]
     }
-  }
+  ]
 }

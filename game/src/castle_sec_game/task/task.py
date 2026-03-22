@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import re
 import uuid
 from enum import Enum
 
@@ -16,12 +17,13 @@ class TaskResult(Enum):
     def is_success(self):
         return self == TaskResult.SUCCESS
 
-class Task:
+class TaskRunner:
     _name: str
     _id: uuid.UUID
     _timeout: float
     _process: asyncio.subprocess.Process | None = None
     _task: asyncio.Task[TaskResult] | None = None
+    _url: str | None = None
 
     def __init__(self, name, timeout=15*60):
         self._name = name
@@ -37,6 +39,9 @@ class Task:
 
         return None
 
+    def get_url(self) -> str | None:
+        return self._url
+
     def run(self):
         self._task = asyncio.create_task(self._run_impl())
 
@@ -50,19 +55,18 @@ class Task:
             "--exit-code-from", self._name
         ]
         '''
-        # --service-ports
-
         # TODO: Un-hardcode tasks folder
         cmd = [
             "docker", "compose",
             "-p", f"{self}",
             "--project-directory", f"../tasks/{self._name}",
-            "run", "--rm",
+            "run", "--rm", "--service-ports",
             self._name
         ]
 
         logger.info(f"[{self}] Launching task")
         self._process = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+        self._url = self._read_host_port()
         try:
             await asyncio.wait_for(self._process.wait(), timeout=self._timeout)
             logger.info(f"[{self}] Task completed with exit code {self._process.returncode}")
@@ -79,6 +83,21 @@ class Task:
         except Exception as e:
             logger.info(f"[{self}] Task failed:\n{e}")
             return TaskResult.ERROR
+
+    def _read_host_port(self) -> str | None:
+        compose_path = f"../tasks/{self._name}/docker-compose.yml"
+        try:
+            with open(compose_path) as f:
+                content = f.read()
+            match = re.search(r'["\']?(\d+):\d+["\']?', content)
+            if match:
+                port = match.group(1)
+                logger.info(f"[{self}] Task URL: http://localhost:{port}")
+                return f"http://localhost:{port}"
+        except OSError:
+            pass
+        logger.info(f"[{self}] No port mapping found")
+        return None
 
     async def terminate(self):
         if self._process is None:
