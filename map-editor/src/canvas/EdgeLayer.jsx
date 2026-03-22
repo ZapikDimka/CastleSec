@@ -4,11 +4,11 @@ import { computeEdges } from '../state/selectors';
 import Edge from './Edge';
 
 export default function EdgeLayer({ pan, zoom }) {
-    const { nodes, nodePositions } = useMapState();
+    const { nodes, nodePositions, selectedMapId } = useMapState();
 
     const edges = useMemo(() => {
-        return computeEdges(nodes);
-    }, [nodes]);
+        return computeEdges(nodes, { selectedMapId });
+    }, [nodes, selectedMapId]);
 
     // Mark bidirectional pairs for visual offset
     const markedEdges = useMemo(() => {

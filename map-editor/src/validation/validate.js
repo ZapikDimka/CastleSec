@@ -1,10 +1,33 @@
+const CONDITION_OPS = new Set(['eq', 'gt', 'gte', 'lt', 'lte']);
+const KNOWN_FUNCTION_TYPES = new Set([
+    'MoveFunction',
+    'PickUpItemFunction',
+    'RemoveItemFunction',
+    'SolveTaskFunction',
+    'ConditionalFunction',
+    'SetNodeStateFunction',
+    'SetGameVariableFunction',
+    'IncrementGameVariableFunction',
+    'SetTextFunction',
+    'SetImageFunction',
+    'ChangeMapFunction',
+    'ShowMessageFunction',
+    'EndGameFunction',
+    'RandomFunction',
+]);
+const KNOWN_CONDITION_TYPES = new Set([
+    'HasItemCondition',
+    'NodeStateCondition',
+    'GameVariableCondition',
+    'AnyCondition',
+    'AllCondition',
+]);
+
 export function validate(state) {
     const results = new Map();
 
     const addIssue = (entityId, ruleId, severity, message) => {
-        if (!results.has(entityId)) {
-            results.set(entityId, []);
-        }
+        if (!results.has(entityId)) results.set(entityId, []);
         results.get(entityId).push({ id: ruleId, severity, message });
     };
 
@@ -15,224 +38,272 @@ export function validate(state) {
         mapsById = null,
         mapOrder = null,
         topRootMapId = null,
+        _extraTopLevel = null,
     } = state;
-    const CONDITION_TYPES_WITH_ITEM = new Set(['has_item', 'item_used', 'item_not_collected']);
-    const KNOWN_CONDITION_TYPES = new Set(['has_item', 'item_used', 'item_not_collected']);
+    const allNodes = { ...nodes };
+    const knownTasks = new Set(
+        Array.isArray(_extraTopLevel?.tasks)
+            ? _extraTopLevel.tasks.map((task) => String(task))
+            : [],
+    );
 
-    // V-17: Top root map must exist in mapsById when multi-map state is present.
-    if (mapsById && typeof mapsById === 'object' && mapOrder && Array.isArray(mapOrder)) {
+    if (mapsById && typeof mapsById === 'object' && Array.isArray(mapOrder)) {
         const candidateTopRoot = topRootMapId || root;
         if (!candidateTopRoot || !mapsById[candidateTopRoot]) {
-            addIssue(
-                'map',
-                'V-17',
-                'error',
-                candidateTopRoot
-                    ? `Top root map "${candidateTopRoot}" does not exist.`
-                    : 'Top root map is missing.',
-            );
+            addIssue('map', 'V-17', 'error', candidateTopRoot
+                ? `Top root map "${candidateTopRoot}" does not exist.`
+                : 'Top root map is missing.');
         }
 
-        // V-18: Each map root must reference a node inside that map.
         for (const mapId of mapOrder) {
             const map = mapsById[mapId];
             if (!map) continue;
             const mapNodes = map.nodes || {};
+            for (const [id, mapNode] of Object.entries(mapNodes)) {
+                if (mapNode && typeof mapNode === 'object') {
+                    allNodes[id] = mapNode;
+                }
+            }
+            if (!map.name || !String(map.name).trim()) {
+                addIssue(mapId, 'V-25', 'error', `Map "${mapId}" is missing required name.`);
+            }
             if (!map.root || !mapNodes[map.root]) {
-                addIssue(
-                    mapId,
-                    'V-18',
-                    'error',
-                    map.root
-                        ? `Map root "${map.root}" does not exist in map "${mapId}".`
-                        : `Map "${mapId}" is missing root node.`,
-                );
+                addIssue(mapId, 'V-18', 'error', map.root
+                    ? `Map root "${map.root}" does not exist in map "${mapId}".`
+                    : `Map "${mapId}" is missing root node.`);
             }
         }
     }
 
-    // V-01: Root references existing node
     if (root && !nodes[root]) {
         addIssue('map', 'V-01', 'error', `Root node "${root}" does not exist.`);
     }
 
-    const checkAction = (action, nodeId) => {
-        if (!action) return;
-
-        // New action-choice model
-        if (Array.isArray(action.functions)) {
-            if (!action.label || !String(action.label).trim()) {
-                addIssue(nodeId, 'V-10', 'error', 'Action choice is missing label.');
-            }
-            for (const fn of action.functions) {
-                checkFunction(fn, nodeId);
-            }
-            return;
-        }
-
-        if (action.type === 'move') {
-            // V-02: move.to references exist
-            if (!action.to || !nodes[action.to]) {
-                addIssue(nodeId, 'V-02', 'error', action.to ? `Move action targets non-existent node "${action.to}".` : `Move action is missing a target node.`);
-            }
-        }
-
-        if (action.type === 'pickup') {
-            // V-03: pickup.item references exist
-            if (!action.item || !items[action.item]) {
-                addIssue(nodeId, 'V-03', 'error', action.item ? `Pickup action references non-existent item "${action.item}".` : `Pickup action is missing an item.`);
-            }
-        }
-
-        if (action.type === 'if') {
-            if (CONDITION_TYPES_WITH_ITEM.has(action.condition?.type)) {
-                // V-04: condition.item references exist
-                if (!action.condition.item || !items[action.condition.item]) {
-                    addIssue(nodeId, 'V-04', 'error', action.condition.item ? `Condition references non-existent item "${action.condition.item}".` : `Condition is missing an item.`);
-                }
-            }
-            if (action.action) {
-                const nested = Array.isArray(action.action) ? action.action : [action.action];
-                for (const a of nested) {
-                    checkAction(a, nodeId);
-                }
-            }
-        }
-    };
-
-    const checkFunction = (fn, nodeId) => {
-        if (!fn) return;
-        if (fn.type === 'MoveFunction') {
-            if (!fn.to || !nodes[fn.to]) {
-                addIssue(nodeId, 'V-02', 'error', fn.to ? `Move function targets non-existent node "${fn.to}".` : 'Move function is missing a target node.');
-            }
-            return;
-        }
-        if (fn.type === 'PickUpItemFunction') {
-            if (!fn.item || !items[fn.item]) {
-                addIssue(nodeId, 'V-03', 'error', fn.item ? `Pickup function references non-existent item "${fn.item}".` : 'Pickup function is missing an item.');
-            }
-            return;
-        }
-        if (fn.type === 'IfFunction') {
-            if (!fn.condition || typeof fn.condition !== 'object' || Array.isArray(fn.condition)) {
-                addIssue(nodeId, 'V-19', 'error', 'IfFunction is missing condition object.');
-            } else if (!KNOWN_CONDITION_TYPES.has(fn.condition.type)) {
-                addIssue(nodeId, 'V-19', 'error', `IfFunction uses unsupported condition type "${fn.condition.type || ''}".`);
-            }
-            if (CONDITION_TYPES_WITH_ITEM.has(fn.condition?.type)) {
-                if (!fn.condition.item || !items[fn.condition.item]) {
-                    addIssue(nodeId, 'V-04', 'error', fn.condition.item ? `Condition references non-existent item "${fn.condition.item}".` : 'Condition is missing an item.');
-                }
-            }
-            if (!Array.isArray(fn.then_functions)) {
-                addIssue(nodeId, 'V-20', 'error', 'IfFunction.then_functions must be an array.');
-            }
-            if (!Array.isArray(fn.else_functions)) {
-                addIssue(nodeId, 'V-21', 'error', 'IfFunction.else_functions must be an array.');
-            }
-            (fn.then_functions || []).forEach((nested) => checkFunction(nested, nodeId));
-            (fn.else_functions || []).forEach((nested) => checkFunction(nested, nodeId));
-            return;
-        }
-        if (fn.type === 'SolveTaskFunction') {
-            if (!fn.task || !String(fn.task).trim()) {
-                addIssue(nodeId, 'V-22', 'error', 'SolveTaskFunction is missing required task.');
-            }
-            if (!Array.isArray(fn.on_success)) {
-                addIssue(nodeId, 'V-23', 'error', 'SolveTaskFunction.on_success must be an array.');
-            }
-            if (!Array.isArray(fn.on_failure)) {
-                addIssue(nodeId, 'V-24', 'error', 'SolveTaskFunction.on_failure must be an array.');
-            }
-            (fn.on_success || []).forEach((nested) => checkFunction(nested, nodeId));
-            (fn.on_failure || []).forEach((nested) => checkFunction(nested, nodeId));
-            return;
-        }
-        if (fn.type === 'ShowHintTextFunction') {
-            if (!fn.text || !String(fn.text).trim()) {
-                addIssue(nodeId, 'V-11', 'error', 'Hint function is missing required text.');
-            }
-            return;
-        }
-        if (fn.type === 'InspectFunction') {
-            if (!fn.title || !String(fn.title).trim()) {
-                addIssue(nodeId, 'V-12', 'error', 'Inspect function is missing required title.');
-            }
-            if (!fn.content || !String(fn.content).trim()) {
-                addIssue(nodeId, 'V-13', 'error', 'Inspect function is missing required content.');
-            }
-            return;
-        }
-        if (fn.type === 'SetVariableFunction') {
-            if (fn.target_node && !nodes[fn.target_node]) {
-                addIssue(nodeId, 'V-14', 'error', `SetVariableFunction references non-existent node "${fn.target_node}".`);
-            }
-            if (!fn.variable || !String(fn.variable).trim()) {
-                addIssue(nodeId, 'V-15', 'error', 'SetVariableFunction is missing required variable.');
-            }
-            if (!fn.value || !String(fn.value).trim()) {
-                addIssue(nodeId, 'V-16', 'error', 'SetVariableFunction is missing required value.');
-            }
-        }
-    };
-
-    // Check item IDs
     for (const itemId of Object.keys(items)) {
-        // V-08: Item ID prefix
+        const item = items[itemId] || {};
         if (!itemId.startsWith('ITEM_')) {
-            addIssue(itemId, 'V-08', 'warning', `Item ID should start with "ITEM_".`);
+            addIssue(itemId, 'V-08', 'warning', 'Item ID should start with "ITEM_".');
+        }
+        if (!item.image || !String(item.image).trim()) {
+            addIssue(itemId, 'V-26', 'error', 'Item image is required by engine schema.');
         }
     }
 
-    const moveEdges = new Map(); // from -> Set(to)
+    const moveEdges = new Map();
+
+    const validateCondition = (condition, nodeId, path = 'condition') => {
+        if (!condition || typeof condition !== 'object' || Array.isArray(condition)) {
+            addIssue(nodeId, 'V-27', 'error', `${path} must be an object.`);
+            return;
+        }
+        if (!KNOWN_CONDITION_TYPES.has(condition.type)) {
+            addIssue(nodeId, 'V-39', 'warning', `${path} uses unknown condition type "${condition.type || ''}".`);
+            return;
+        }
+
+        if (condition.type === 'HasItemCondition') {
+            if (!condition.item || !items[condition.item]) {
+                addIssue(nodeId, 'V-04', 'error', condition.item
+                    ? `${path} references non-existent item "${condition.item}".`
+                    : `${path} is missing required item.`);
+            }
+            return;
+        }
+
+        if (condition.type === 'NodeStateCondition') {
+            if (condition.target_node && !allNodes[condition.target_node]) {
+                addIssue(nodeId, 'V-28', 'error', `${path} target node "${condition.target_node}" does not exist.`);
+            }
+            return;
+        }
+
+        if (condition.type === 'GameVariableCondition') {
+            if (!condition.key || !String(condition.key).trim()) {
+                addIssue(nodeId, 'V-29', 'error', `${path} is missing variable key.`);
+            }
+            if (!CONDITION_OPS.has(condition.operator)) {
+                addIssue(nodeId, 'V-29', 'error', `${path} has invalid operator "${condition.operator || ''}".`);
+            }
+            return;
+        }
+
+        if (condition.type === 'AnyCondition' || condition.type === 'AllCondition') {
+            if (!Array.isArray(condition.conditions)) {
+                addIssue(nodeId, 'V-30', 'error', `${path}.conditions must be an array.`);
+                return;
+            }
+            condition.conditions.forEach((nested, idx) => validateCondition(nested, nodeId, `${path}.conditions[${idx}]`));
+        }
+    };
+
+    const validateFunction = (fn, nodeId, path = 'function') => {
+        if (!fn || typeof fn !== 'object' || Array.isArray(fn)) {
+            addIssue(nodeId, 'V-31', 'error', `${path} must be an object.`);
+            return;
+        }
+
+        if (!KNOWN_FUNCTION_TYPES.has(fn.type)) {
+            addIssue(nodeId, 'V-32', 'warning', `${path} has unknown function type "${fn.type || ''}".`);
+            return;
+        }
+
+        if (fn.type === 'MoveFunction') {
+            if (!fn.to || !allNodes[fn.to]) {
+                addIssue(nodeId, 'V-02', 'error', fn.to
+                    ? `${path} targets non-existent node "${fn.to}".`
+                    : `${path} is missing target node.`);
+            } else {
+                moveEdges.get(nodeId).add(fn.to);
+            }
+            return;
+        }
+
+        if (fn.type === 'PickUpItemFunction' || fn.type === 'RemoveItemFunction') {
+            if (!fn.item || !items[fn.item]) {
+                addIssue(nodeId, 'V-03', 'error', fn.item
+                    ? `${path} references non-existent item "${fn.item}".`
+                    : `${path} is missing item.`);
+            }
+            return;
+        }
+
+        if (fn.type === 'SetNodeStateFunction' || fn.type === 'SetTextFunction' || fn.type === 'SetImageFunction') {
+            if (fn.target_node && !allNodes[fn.target_node]) {
+                addIssue(nodeId, 'V-28', 'error', `${path} target node "${fn.target_node}" does not exist.`);
+            }
+            if (fn.type === 'SetTextFunction') {
+                if (!fn.variable || !String(fn.variable).trim()) addIssue(nodeId, 'V-15', 'error', `${path} variable is required.`);
+                if (!fn.value || !String(fn.value).trim()) addIssue(nodeId, 'V-16', 'error', `${path} value is required.`);
+            }
+            if (fn.type === 'SetImageFunction' && (!fn.value || !String(fn.value).trim())) {
+                addIssue(nodeId, 'V-16', 'error', `${path} image value is required.`);
+            }
+            return;
+        }
+
+        if (fn.type === 'SetGameVariableFunction') {
+            if (!fn.key || !String(fn.key).trim()) addIssue(nodeId, 'V-15', 'error', `${path} key is required.`);
+            return;
+        }
+
+        if (fn.type === 'IncrementGameVariableFunction') {
+            if (!fn.key || !String(fn.key).trim()) addIssue(nodeId, 'V-15', 'error', `${path} key is required.`);
+            if (!Number.isFinite(Number(fn.amount))) addIssue(nodeId, 'V-16', 'error', `${path} amount must be numeric.`);
+            return;
+        }
+
+        if (fn.type === 'ShowMessageFunction') {
+            if (!fn.message || !String(fn.message).trim()) addIssue(nodeId, 'V-11', 'error', `${path} message is required.`);
+            return;
+        }
+
+        if (fn.type === 'EndGameFunction') {
+            return;
+        }
+
+        if (fn.type === 'ChangeMapFunction') {
+            if (!fn.map || !mapsById?.[fn.map]) {
+                addIssue(nodeId, 'V-33', 'error', `${path} map "${fn.map || ''}" does not exist.`);
+            }
+            if (!fn.node || !String(fn.node).trim()) {
+                addIssue(nodeId, 'V-33', 'error', `${path} node is required.`);
+            } else {
+                const targetMapNodes = mapsById?.[fn.map]?.nodes || {};
+                if (fn.map && mapsById?.[fn.map] && !targetMapNodes[fn.node]) {
+                    addIssue(nodeId, 'V-33', 'error', `${path} node "${fn.node}" does not exist in map "${fn.map}".`);
+                }
+            }
+            return;
+        }
+
+        if (fn.type === 'ConditionalFunction') {
+            validateCondition(fn.condition, nodeId, `${path}.condition`);
+            if (!Array.isArray(fn.on_success)) {
+                addIssue(nodeId, 'V-23', 'error', `${path}.on_success must be an array.`);
+            } else {
+                fn.on_success.forEach((nested, idx) => validateFunction(nested, nodeId, `${path}.on_success[${idx}]`));
+            }
+            if (!Array.isArray(fn.on_failure)) {
+                addIssue(nodeId, 'V-24', 'error', `${path}.on_failure must be an array.`);
+            } else {
+                fn.on_failure.forEach((nested, idx) => validateFunction(nested, nodeId, `${path}.on_failure[${idx}]`));
+            }
+            return;
+        }
+
+        if (fn.type === 'SolveTaskFunction') {
+            if (!fn.task || !String(fn.task).trim()) addIssue(nodeId, 'V-22', 'error', `${path}.task is required.`);
+            if (knownTasks.size > 0 && fn.task && !knownTasks.has(String(fn.task))) {
+                addIssue(nodeId, 'V-22', 'error', `${path}.task "${fn.task}" is not found in loaded tasks list.`);
+            }
+            if (!Array.isArray(fn.on_success)) {
+                addIssue(nodeId, 'V-23', 'error', `${path}.on_success must be an array.`);
+            } else {
+                fn.on_success.forEach((nested, idx) => validateFunction(nested, nodeId, `${path}.on_success[${idx}]`));
+            }
+            if (!Array.isArray(fn.on_failure)) {
+                addIssue(nodeId, 'V-24', 'error', `${path}.on_failure must be an array.`);
+            } else {
+                fn.on_failure.forEach((nested, idx) => validateFunction(nested, nodeId, `${path}.on_failure[${idx}]`));
+            }
+            return;
+        }
+
+        if (fn.type === 'RandomFunction') {
+            if (!Array.isArray(fn.branches) || fn.branches.length === 0) {
+                addIssue(nodeId, 'V-34', 'error', `${path}.branches must contain at least one branch.`);
+                return;
+            }
+            fn.branches.forEach((branch, idx) => {
+                if (!Number.isFinite(Number(branch?.weight)) || Number(branch.weight) <= 0) {
+                    addIssue(nodeId, 'V-34', 'error', `${path}.branches[${idx}].weight must be > 0.`);
+                }
+                if (!Array.isArray(branch?.functions)) {
+                    addIssue(nodeId, 'V-34', 'error', `${path}.branches[${idx}].functions must be an array.`);
+                    return;
+                }
+                branch.functions.forEach((nested, nestedIdx) => validateFunction(nested, nodeId, `${path}.branches[${idx}].functions[${nestedIdx}]`));
+            });
+        }
+    };
 
     for (const [nodeId, node] of Object.entries(nodes)) {
-        // V-07: Node ID prefix
         if (!nodeId.startsWith('NODE_')) {
-            addIssue(nodeId, 'V-07', 'warning', `Node ID should start with "NODE_".`);
+            addIssue(nodeId, 'V-07', 'warning', 'Node ID should start with "NODE_".');
+        }
+
+        if (!node.image || !String(node.image).trim()) {
+            addIssue(nodeId, 'V-35', 'error', 'Node image is required by engine schema.');
+        }
+
+        if (!node.coords || typeof node.coords !== 'object' || !Number.isFinite(Number(node.coords.x)) || !Number.isFinite(Number(node.coords.y))) {
+            addIssue(nodeId, 'V-36', 'error', 'Node coords are required and must be numeric.');
         }
 
         moveEdges.set(nodeId, new Set());
 
         const actions = node.actions || [];
-        const processActionForEdges = (action) => {
-            if (Array.isArray(action?.functions)) {
-                processFunctionsForEdges(action.functions);
-            } else if (action.type === 'move' && action.to) {
-                moveEdges.get(nodeId).add(action.to);
-            } else if (action.type === 'if' && action.action) {
-                const nested = Array.isArray(action.action) ? action.action : [action.action];
-                nested.forEach(processActionForEdges);
+        actions.forEach((action, actionIndex) => {
+            if (!action || typeof action !== 'object' || Array.isArray(action)) {
+                addIssue(nodeId, 'V-38', 'error', `Action ${actionIndex + 1} must be an object.`);
+                return;
             }
-        };
-
-        const processFunctionsForEdges = (functions) => {
-            for (const fn of functions || []) {
-                if (!fn) continue;
-                if (fn.type === 'MoveFunction' && fn.to) {
-                    moveEdges.get(nodeId).add(fn.to);
-                    continue;
-                }
-                if (fn.type === 'IfFunction') {
-                    processFunctionsForEdges(fn.then_functions || []);
-                    processFunctionsForEdges(fn.else_functions || []);
-                    continue;
-                }
-                if (fn.type === 'SolveTaskFunction') {
-                    processFunctionsForEdges(fn.on_success || []);
-                    processFunctionsForEdges(fn.on_failure || []);
-                }
+            if (!Array.isArray(action?.functions)) {
+                addIssue(nodeId, 'V-38', 'error', `Action ${actionIndex + 1} functions must be an array.`);
+                return;
             }
-        };
-
-        for (const action of actions) {
-            checkAction(action, nodeId);
-            processActionForEdges(action);
-        }
+            if (!action.label || !String(action.label).trim()) {
+                addIssue(nodeId, 'V-10', 'error', `Action ${actionIndex + 1} is missing label.`);
+            }
+            if (!Array.isArray(action.conditions)) {
+                addIssue(nodeId, 'V-37', 'error', `Action ${actionIndex + 1} conditions must be an array.`);
+            } else {
+                action.conditions.forEach((condition, idx) => validateCondition(condition, nodeId, `actions[${actionIndex}].conditions[${idx}]`));
+            }
+            action.functions.forEach((fn, fnIndex) => validateFunction(fn, nodeId, `actions[${actionIndex}].functions[${fnIndex}]`));
+        });
     }
 
-    // V-09: Orphan nodes via BFS from root
     const reachable = new Set();
     if (root && nodes[root]) {
         const queue = [root];
@@ -243,7 +314,7 @@ export function validate(state) {
             const current = queue[head++];
             const neighbors = moveEdges.get(current) || new Set();
             for (const neighbor of neighbors) {
-                if (!reachable.has(neighbor) && nodes[neighbor]) { // ignore invalid edges here
+                if (!reachable.has(neighbor) && nodes[neighbor]) {
                     reachable.add(neighbor);
                     queue.push(neighbor);
                 }
@@ -253,8 +324,7 @@ export function validate(state) {
 
     for (const nodeId of Object.keys(nodes)) {
         if (!reachable.has(nodeId)) {
-            // V-09: Orphan node
-            addIssue(nodeId, 'V-09', 'warning', `Node is unreachable from root via move actions.`);
+            addIssue(nodeId, 'V-09', 'warning', 'Node is unreachable from root via move actions.');
         }
     }
 

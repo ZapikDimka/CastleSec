@@ -45,7 +45,11 @@ export function deserialize(gameJsonString, editorJsonString) {
     const parsedNodes = {};
 
     for (const [nodeId, node] of Object.entries(sourceNodes)) {
-        const parsedNode = { ...node, id: nodeId };
+        const parsedNode = {
+            ...node,
+            id: nodeId,
+            image: typeof node?.image === 'string' && node.image.trim() ? node.image : 'ic_cross.svg',
+        };
 
         // Ensure actions exist and migrate legacy action rows to action-choice model.
         if (Array.isArray(parsedNode.actions)) {
@@ -64,6 +68,13 @@ export function deserialize(gameJsonString, editorJsonString) {
     const basePositions = Object.keys(embeddedResolved).length > 0 ? embeddedResolved : sidecarResolved;
     const nodePositions = mergeMissingPositions(basePositions, fallbackPositions, parsedNodes);
 
+    // Keep node.coords synchronized with resolved positions for engine-valid schema.
+    for (const nodeId of Object.keys(parsedNodes)) {
+        const node = parsedNodes[nodeId];
+        const pos = nodePositions[nodeId] || { x: 0, y: 0 };
+        node.coords = sanitizeCoords(node.coords, pos);
+    }
+
     const _extraTopLevel = {
         ...rawExtraTopLevel,
         ...(engineSyncMeta ? { _engineSync: engineSyncMeta } : {}),
@@ -78,6 +89,17 @@ export function deserialize(gameJsonString, editorJsonString) {
     };
 }
 
+function sanitizeCoords(rawCoords, fallback) {
+    if (rawCoords && typeof rawCoords === 'object') {
+        const x = Number(rawCoords.x);
+        const y = Number(rawCoords.y);
+        if (Number.isFinite(x) && Number.isFinite(y)) {
+            return { x: Math.round(x), y: Math.round(y) };
+        }
+    }
+    return { x: Math.round(fallback?.x || 0), y: Math.round(fallback?.y || 0) };
+}
+
 function parseItemsToDict(rawItems) {
     const parsedItems = {};
 
@@ -86,7 +108,13 @@ function parseItemsToDict(rawItems) {
         for (const rawItem of rawItems) {
             if (!rawItem || typeof rawItem !== 'object' || !rawItem.id) continue;
             const { id, ...itemFields } = rawItem;
-            parsedItems[id] = { id, ...itemFields };
+            parsedItems[id] = {
+                id,
+                ...itemFields,
+                name: typeof itemFields.name === 'string' ? itemFields.name : id,
+                image: typeof itemFields.image === 'string' && itemFields.image.trim() ? itemFields.image : 'ic_cross.svg',
+                description: typeof itemFields.description === 'string' ? itemFields.description : '',
+            };
         }
         return parsedItems;
     }
@@ -94,7 +122,14 @@ function parseItemsToDict(rawItems) {
     // Legacy shape: items{}
     if (rawItems && typeof rawItems === 'object') {
         for (const [itemId, item] of Object.entries(rawItems)) {
-            parsedItems[itemId] = { id: itemId, ...item };
+            const source = item && typeof item === 'object' ? item : {};
+            parsedItems[itemId] = {
+                id: itemId,
+                ...source,
+                name: typeof source.name === 'string' ? source.name : itemId,
+                image: typeof source.image === 'string' && source.image.trim() ? source.image : 'ic_cross.svg',
+                description: typeof source.description === 'string' ? source.description : '',
+            };
         }
     }
 
@@ -103,7 +138,7 @@ function parseItemsToDict(rawItems) {
 
 function toActionChoice(rawAction) {
     if (!rawAction || typeof rawAction !== 'object') {
-        return { label: 'Action', once: false, functions: [] };
+        return { label: 'Action', once: false, functions: [], conditions: [] };
     }
 
     // Already in action-choice shape.
@@ -112,15 +147,13 @@ function toActionChoice(rawAction) {
             ...rawAction,
             once: Boolean(rawAction.once),
             functions: rawAction.functions.map((fn) => toKnownOrUnknownFunction(fn)),
+            conditions: Array.isArray(rawAction.conditions)
+                ? rawAction.conditions.map((c) => toKnownOrUnknownCondition(c))
+                : [],
         };
     }
 
-    const fn = legacyActionToFunction(rawAction);
-    return {
-        label: legacyActionToLabel(rawAction),
-        once: false,
-        functions: fn ? [toKnownOrUnknownFunction(fn)] : [],
-    };
+    return migrateLegacyActionToChoice(rawAction);
 }
 
 function toKnownOrUnknownFunction(rawFunction) {
@@ -128,25 +161,66 @@ function toKnownOrUnknownFunction(rawFunction) {
     const known = [
         'MoveFunction',
         'PickUpItemFunction',
+        'RemoveItemFunction',
         'SolveTaskFunction',
-        'SetVariableFunction',
-        'IfFunction',
-        'ShowHintTextFunction',
-        'InspectFunction',
+        'SetNodeStateFunction',
+        'SetGameVariableFunction',
+        'IncrementGameVariableFunction',
+        'SetTextFunction',
+        'SetImageFunction',
+        'ChangeMapFunction',
+        'EndGameFunction',
+        'ShowMessageFunction',
+        'ConditionalFunction',
+        'RandomFunction',
     ];
 
     if (fn.type && !known.includes(fn.type)) {
         fn._unknown = true;
     }
 
-    if (fn.type === 'IfFunction' && fn.condition && typeof fn.condition === 'object') {
-        const knownConditions = ['has_item', 'item_used', 'item_not_collected'];
-        if (fn.condition.type && !knownConditions.includes(fn.condition.type)) {
-            fn.condition = { ...fn.condition, _unknown: true };
-        }
+    if (fn.type === 'ConditionalFunction' && fn.condition && typeof fn.condition === 'object') {
+        fn.condition = toKnownOrUnknownCondition(fn.condition);
+    }
+    if (fn.type === 'ConditionalFunction') {
+        fn.on_success = Array.isArray(fn.on_success) ? fn.on_success.map((nested) => toKnownOrUnknownFunction(nested)) : [];
+        fn.on_failure = Array.isArray(fn.on_failure) ? fn.on_failure.map((nested) => toKnownOrUnknownFunction(nested)) : [];
+    }
+    if (fn.type === 'SolveTaskFunction') {
+        fn.on_success = Array.isArray(fn.on_success) ? fn.on_success.map((nested) => toKnownOrUnknownFunction(nested)) : [];
+        fn.on_failure = Array.isArray(fn.on_failure) ? fn.on_failure.map((nested) => toKnownOrUnknownFunction(nested)) : [];
+    }
+    if (fn.type === 'RandomFunction' && Array.isArray(fn.branches)) {
+        fn.branches = fn.branches.map((branch) => ({
+            ...(branch || {}),
+            functions: Array.isArray(branch?.functions)
+                ? branch.functions.map((nested) => toKnownOrUnknownFunction(nested))
+                : [],
+        }));
     }
 
     return fn;
+}
+
+function toKnownOrUnknownCondition(rawCondition) {
+    const condition = { ...(rawCondition || {}) };
+    const knownConditions = [
+        'HasItemCondition',
+        'NodeStateCondition',
+        'GameVariableCondition',
+        'AnyCondition',
+        'AllCondition',
+    ];
+
+    if (condition.type && !knownConditions.includes(condition.type)) {
+        condition._unknown = true;
+    }
+
+    if ((condition.type === 'AnyCondition' || condition.type === 'AllCondition') && Array.isArray(condition.conditions)) {
+        condition.conditions = condition.conditions.map((nested) => toKnownOrUnknownCondition(nested));
+    }
+
+    return condition;
 }
 
 function legacyActionToLabel(action) {
@@ -158,12 +232,78 @@ function legacyActionToLabel(action) {
         case 'solve_task':
             return action.name ? `Solve: ${action.name}` : 'Solve task';
         case 'if':
-            return 'Conditional action';
+            return 'If condition';
         case 'return':
             return 'Return (set destination)';
         default:
             return action.type ? `Legacy: ${action.type}` : 'Action';
     }
+}
+
+function migrateLegacyActionToChoice(action) {
+    if (!action || typeof action !== 'object') {
+        return { label: 'Action', once: false, functions: [], conditions: [] };
+    }
+
+    if (action.type === 'if') {
+        return migrateLegacyIfActionToChoice(action);
+    }
+
+    const migratedFn = legacyActionToFunction(action);
+    return {
+        label: legacyActionToLabel(action),
+        once: Boolean(action.once),
+        functions: migratedFn ? [toKnownOrUnknownFunction(migratedFn)] : [],
+        conditions: [],
+    };
+}
+
+function migrateLegacyIfActionToChoice(action) {
+    const condition = toKnownOrUnknownCondition(legacyConditionToCondition(action.condition));
+    const thenActions = normalizeLegacyActionList(action.action ?? action.then ?? action.then_action);
+    const elseActions = normalizeLegacyActionList(action.else ?? action.else_action ?? action.on_false);
+
+    const thenFunctions = thenActions
+        .map((a) => legacyActionToFunction(a))
+        .filter(Boolean)
+        .map((fn) => toKnownOrUnknownFunction(fn));
+    const elseFunctions = elseActions
+        .map((a) => legacyActionToFunction(a))
+        .filter(Boolean)
+        .map((fn) => toKnownOrUnknownFunction(fn));
+
+    const hasElseBranch = elseFunctions.length > 0;
+    const requiresBranchSemantics = hasElseBranch || thenFunctions.some((fn) => fn?.type === 'ConditionalFunction');
+
+    if (!requiresBranchSemantics) {
+        return {
+            label: legacyActionToLabel(action),
+            once: Boolean(action.once),
+            conditions: [condition],
+            functions: thenFunctions,
+        };
+    }
+
+    return {
+        label: legacyActionToLabel(action),
+        once: Boolean(action.once),
+        conditions: [],
+        functions: [
+            toKnownOrUnknownFunction({
+                type: 'ConditionalFunction',
+                condition,
+                on_success: thenFunctions,
+                on_failure: elseFunctions,
+            }),
+        ],
+    };
+}
+
+function normalizeLegacyActionList(value) {
+    if (!value) return [];
+    if (Array.isArray(value)) return value.filter((entry) => entry && typeof entry === 'object');
+    if (typeof value === 'object') return [value];
+    return [];
 }
 
 function legacyActionToFunction(action) {
@@ -182,17 +322,53 @@ function legacyActionToFunction(action) {
         case 'if': {
             const nested = action.action ? legacyActionToFunction(action.action) : null;
             return {
-                type: 'IfFunction',
-                condition: { ...(action.condition || { type: 'has_item', item: '' }) },
-                then_functions: nested ? [nested] : [],
-                else_functions: [],
+                type: 'ConditionalFunction',
+                condition: legacyConditionToCondition(action.condition),
+                on_success: nested ? [nested] : [],
+                on_failure: [],
             };
         }
         case 'return':
-            return { type: 'MoveFunction', to: '' };
+            if (typeof action.to === 'string' && action.to.trim()) {
+                return { type: 'MoveFunction', to: action.to.trim() };
+            }
+            return {
+                type: 'LegacyFunction',
+                legacy_type: 'return',
+                raw: { ...action },
+            };
         default:
-            return { type: 'LegacyFunction', raw: { ...action } };
+            return {
+                type: 'LegacyFunction',
+                legacy_type: typeof action.type === 'string' ? action.type : 'unknown',
+                raw: { ...action },
+            };
     }
+}
+
+function legacyConditionToCondition(condition) {
+    if (!condition || typeof condition !== 'object') {
+        return {
+            type: 'LegacyCondition',
+            legacy_type: 'missing',
+            raw: condition ?? null,
+        };
+    }
+    if (condition.type === 'has_item') {
+        return { type: 'HasItemCondition', item: condition.item || '' };
+    }
+    if (condition.type === 'item_not_collected') {
+        return { type: 'HasItemCondition', item: condition.item || '', negate: true };
+    }
+    if (condition.type === 'item_used') {
+        return { type: 'GameVariableCondition', key: `item_used:${condition.item || ''}`, value: '1', operator: 'eq' };
+    }
+    return {
+        ...condition,
+        type: condition.type || 'LegacyCondition',
+        legacy_type: condition.type || 'unknown',
+        raw: { ...condition },
+    };
 }
 
 function resolveEngineSyncMeta({ root, maps }) {
@@ -310,18 +486,14 @@ function autoLayout(rootId, nodes) {
         const node = nodes[id];
         if (!node || !node.actions) continue;
 
-        // Find outgoing move edges
+        // Find outgoing move edges from both legacy and function-based actions.
         for (const action of node.actions) {
-            let targetId = null;
-            if (action.type === 'move') {
-                targetId = action.to;
-            } else if (action.type === 'if' && action.action?.type === 'move') {
-                targetId = action.action.to;
-            }
-
-            if (targetId && nodes[targetId] && !visited.has(targetId)) {
-                visited.add(targetId);
-                queue.push({ id: targetId, depth: depth + 1 });
+            const targets = collectMoveTargetsFromAction(action);
+            for (const targetId of targets) {
+                if (targetId && nodes[targetId] && !visited.has(targetId)) {
+                    visited.add(targetId);
+                    queue.push({ id: targetId, depth: depth + 1 });
+                }
             }
         }
     }
@@ -338,4 +510,43 @@ function autoLayout(rootId, nodes) {
     }
 
     return positions;
+}
+
+function collectMoveTargetsFromAction(action) {
+    const out = [];
+    if (!action || typeof action !== 'object') return out;
+    if (Array.isArray(action.functions)) {
+        collectMoveTargetsFromFunctions(action.functions, out);
+        return out;
+    }
+    if (action.type === 'move' && action.to) {
+        out.push(action.to);
+    }
+    if (action.type === 'if' && action.action) {
+        const nested = Array.isArray(action.action) ? action.action : [action.action];
+        for (const a of nested) {
+            out.push(...collectMoveTargetsFromAction(a));
+        }
+    }
+    return out;
+}
+
+function collectMoveTargetsFromFunctions(functions, out) {
+    for (const fn of functions || []) {
+        if (!fn || typeof fn !== 'object') continue;
+        if (fn.type === 'MoveFunction' && fn.to) out.push(fn.to);
+        if (fn.type === 'SolveTaskFunction') {
+            collectMoveTargetsFromFunctions(fn.on_success || [], out);
+            collectMoveTargetsFromFunctions(fn.on_failure || [], out);
+        }
+        if (fn.type === 'ConditionalFunction') {
+            collectMoveTargetsFromFunctions(fn.on_success || [], out);
+            collectMoveTargetsFromFunctions(fn.on_failure || [], out);
+        }
+        if (fn.type === 'RandomFunction') {
+            for (const branch of fn.branches || []) {
+                collectMoveTargetsFromFunctions(branch.functions || [], out);
+            }
+        }
+    }
 }

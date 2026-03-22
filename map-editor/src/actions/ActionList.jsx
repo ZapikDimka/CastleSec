@@ -2,11 +2,13 @@ import { useState, useRef, useCallback } from 'react';
 import { useMapState, useMapDispatch } from '../state/MapContext';
 import ActionEditor from './ActionEditor';
 import ConfirmDialog from '../shared/ConfirmDialog';
+import { validateFunction, validateCondition } from './FunctionList';
 
 const ACTION_DEFAULT = {
     label: 'New action choice',
     once: false,
     functions: [],
+    conditions: [],
 };
 
 function getActionSummary(action) {
@@ -17,42 +19,7 @@ function getActionSummary(action) {
 }
 
 function getFunctionError(fn, refs = {}) {
-    const { nodes = {}, items = {} } = refs;
-    if (!fn || typeof fn !== 'object') return null;
-    if (fn.type === 'MoveFunction') {
-        if (!fn.to?.trim()) return 'Target node is required.';
-        if (!nodes[fn.to]) return `Target node "${fn.to}" does not exist.`;
-    }
-    if (fn.type === 'PickUpItemFunction') {
-        if (!fn.item?.trim()) return 'Item is required.';
-        if (!items[fn.item]) return `Item "${fn.item}" does not exist.`;
-    }
-    if (fn.type === 'IfFunction') {
-        const type = fn.condition?.type;
-        const known = ['has_item', 'item_used', 'item_not_collected'];
-        if (!known.includes(type)) return 'Condition type is required.';
-        if (!fn.condition?.item?.trim()) return 'Condition item is required.';
-        if (!items[fn.condition.item]) return `Condition item "${fn.condition.item}" does not exist.`;
-        if (!Array.isArray(fn.then_functions)) return 'then_functions must be an array.';
-        if (!Array.isArray(fn.else_functions)) return 'else_functions must be an array.';
-    }
-    if (fn.type === 'SolveTaskFunction') {
-        if (!fn.task?.trim()) return 'Task is required.';
-        if (!Array.isArray(fn.on_success)) return 'on_success must be an array.';
-        if (!Array.isArray(fn.on_failure)) return 'on_failure must be an array.';
-    }
-    if (fn.type === 'ShowHintTextFunction' && !fn.text?.trim()) {
-        return 'Hint text is required.';
-    }
-    if (fn.type === 'InspectFunction') {
-        if (!fn.title?.trim()) return 'Inspect title is required.';
-        if (!fn.content?.trim()) return 'Inspect content is required.';
-    }
-    if (fn.type === 'SetVariableFunction') {
-        if (!fn.variable?.trim()) return 'Variable is required.';
-        if (!fn.value?.trim()) return 'Value is required.';
-    }
-    return null;
+    return validateFunction(fn, refs);
 }
 
 function findFirstFunctionError(functions, refs) {
@@ -63,20 +30,25 @@ function findFirstFunctionError(functions, refs) {
         const directError = getFunctionError(fn, refs);
         if (directError) return `Function ${i + 1}: ${directError}`;
 
-        if (fn?.type === 'IfFunction') {
-            const thenError = findFirstFunctionError(fn.then_functions, refs);
-            if (thenError) return `Function ${i + 1} (then): ${thenError}`;
-
-            const elseError = findFirstFunctionError(fn.else_functions, refs);
-            if (elseError) return `Function ${i + 1} (else): ${elseError}`;
-        }
-
         if (fn?.type === 'SolveTaskFunction') {
             const successError = findFirstFunctionError(fn.on_success, refs);
             if (successError) return `Function ${i + 1} (on_success): ${successError}`;
 
             const failureError = findFirstFunctionError(fn.on_failure, refs);
             if (failureError) return `Function ${i + 1} (on_failure): ${failureError}`;
+        }
+        if (fn?.type === 'ConditionalFunction') {
+            const successError = findFirstFunctionError(fn.on_success, refs);
+            if (successError) return `Function ${i + 1} (on_success): ${successError}`;
+
+            const failureError = findFirstFunctionError(fn.on_failure, refs);
+            if (failureError) return `Function ${i + 1} (on_failure): ${failureError}`;
+        }
+        if (fn?.type === 'RandomFunction') {
+            for (let b = 0; b < (fn.branches || []).length; b++) {
+                const branchError = findFirstFunctionError(fn.branches[b]?.functions || [], refs);
+                if (branchError) return `Function ${i + 1} (branch ${b + 1}): ${branchError}`;
+            }
         }
     }
 
@@ -86,9 +58,18 @@ function findFirstFunctionError(functions, refs) {
 function getActionError(action, state) {
     if (!action?.label?.trim()) return 'Label is required';
     if (!Array.isArray(action?.functions)) return 'Functions must be an array';
+    if (!Array.isArray(action?.conditions)) return 'Conditions must be an array';
+    for (let i = 0; i < action.conditions.length; i++) {
+        const conditionError = validateCondition(action.conditions[i], {
+            nodes: state?.nodes || {},
+            items: state?.items || {},
+        });
+        if (conditionError) return `Condition ${i + 1}: ${conditionError}`;
+    }
     const functionError = findFirstFunctionError(action.functions, {
         nodes: state?.nodes || {},
         items: state?.items || {},
+        mapsById: state?.mapsById || {},
     });
     if (functionError) return functionError;
     return null;

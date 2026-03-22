@@ -6,10 +6,11 @@ import { pushHistory, undo, redo } from './history.js';
 
 export function createInitialState() {
     const defaultMap = createDefaultMap('MAP_1');
+    const defaultItems = createDefaultItems();
 
     return {
         // ----- Map Data (serialized to JSON) -----
-        items: {},
+        items: defaultItems,
         topRootMapId: defaultMap.id,
         selectedMapId: defaultMap.id,
         mapsById: {
@@ -37,11 +38,21 @@ export function createInitialState() {
             }),
         },
         nodeCounter: 3,
-        itemCounter: 0,
+        itemCounter: Object.keys(defaultItems).length,
         history: {
             past: [],
             future: [],
         }
+    };
+}
+
+function createDefaultItems() {
+    return {
+        ITEM_key: {
+            name: 'Brass Key',
+            image: 'ic_cross.svg',
+            description: 'A simple brass key.',
+        },
     };
 }
 
@@ -56,11 +67,13 @@ function createDefaultMap(id) {
                 id: rootId,
                 name: 'Entrance Hall',
                 text: 'Starting point of the map.',
-                image: null,
+                image: 'ic_cross.svg',
+                coords: { x: 0, y: 0 },
                 actions: [
                     {
                         label: 'Go to Armory',
                         once: false,
+                        conditions: [],
                         functions: [
                             { type: 'MoveFunction', to: 'NODE_armory' },
                         ],
@@ -68,13 +81,9 @@ function createDefaultMap(id) {
                     {
                         label: 'Use key for Throne Room',
                         once: false,
+                        conditions: [{ type: 'HasItemCondition', item: 'ITEM_key' }],
                         functions: [
-                            {
-                                type: 'IfFunction',
-                                condition: { type: 'has_item', item: 'ITEM_key' },
-                                then_functions: [{ type: 'MoveFunction', to: 'NODE_throne' }],
-                                else_functions: [],
-                            },
+                            { type: 'MoveFunction', to: 'NODE_throne' },
                         ],
                     },
                 ],
@@ -83,16 +92,19 @@ function createDefaultMap(id) {
                 id: 'NODE_armory',
                 name: 'Armory',
                 text: 'Weapons line the walls.',
-                image: null,
+                image: 'ic_cross.svg',
+                coords: { x: 300, y: 0 },
                 actions: [
                     {
                         label: 'Return to Entrance',
                         once: false,
+                        conditions: [],
                         functions: [{ type: 'MoveFunction', to: rootId }],
                     },
                     {
                         label: 'Go to Throne Room',
                         once: false,
+                        conditions: [],
                         functions: [{ type: 'MoveFunction', to: 'NODE_throne' }],
                     },
                 ],
@@ -101,11 +113,13 @@ function createDefaultMap(id) {
                 id: 'NODE_throne',
                 name: 'Throne Room',
                 text: 'The king sits here.',
-                image: null,
+                image: 'ic_cross.svg',
+                coords: { x: 150, y: 200 },
                 actions: [
                     {
                         label: 'Wait',
                         once: false,
+                        conditions: [],
                         functions: [{ type: 'MoveFunction', to: 'NODE_throne' }],
                     },
                 ],
@@ -240,7 +254,8 @@ function baseReducer(state, action) {
                         id,
                         name: `New Node`,
                         text: '',
-                        image: null,
+                        image: 'ic_cross.svg',
+                        coords: { x: normalizedX, y: normalizedY },
                         actions: [],
                     },
                 },
@@ -315,6 +330,16 @@ function baseReducer(state, action) {
                         y: normalizeCoordinate(y),
                     },
                 },
+                nodes: {
+                    ...state.nodes,
+                    [id]: {
+                        ...state.nodes[id],
+                        coords: {
+                            x: normalizeCoordinate(x),
+                            y: normalizeCoordinate(y),
+                        },
+                    },
+                },
             };
         }
 
@@ -344,7 +369,7 @@ function baseReducer(state, action) {
                 ...state,
                 items: {
                     ...state.items,
-                    [itemId]: { name: name || 'New Item' },
+                    [itemId]: { name: name || 'New Item', image: 'ic_cross.svg', description: '' },
                 },
                 selectedItemId: itemId,
                 selectedNodeId: null,
@@ -626,7 +651,7 @@ function normalizeSerializedMap(rawMap) {
     const { id: _ignoreId, root: _ignoreRoot, nodes: _ignoreNodes, ...extra } = rawMap;
     return {
         id: mapId,
-        name: mapId,
+        name: rawMap.name || mapId,
         root,
         nodes,
         nodePositions: {},
@@ -754,6 +779,7 @@ function removeActionsReferencingNode(actions, deletedNodeId) {
                 return {
                     ...action,
                     functions: removeNodeRefsFromFunctions(action.functions, deletedNodeId),
+                    conditions: removeNodeRefsFromConditions(action.conditions || [], deletedNodeId),
                 };
             }
 
@@ -788,6 +814,7 @@ function removeActionsReferencingItem(actions, deletedItemId) {
                 return {
                     ...action,
                     functions: removeItemRefsFromFunctions(action.functions, deletedItemId),
+                    conditions: removeItemRefsFromConditions(action.conditions || [], deletedItemId),
                 };
             }
             if (action.type === 'if') {
@@ -814,6 +841,7 @@ function renameNodeInActions(actions, oldId, newId) {
             return {
                 ...action,
                 functions: renameNodeInFunctions(action.functions, oldId, newId),
+                conditions: renameNodeInConditions(action.conditions || [], oldId, newId),
             };
         }
         if (action.type === 'move' && action.to === oldId) {
@@ -836,6 +864,7 @@ function renameItemInActions(actions, oldId, newId) {
             return {
                 ...action,
                 functions: renameItemInFunctions(action.functions, oldId, newId),
+                conditions: renameItemInConditions(action.conditions || [], oldId, newId),
             };
         }
         if (action.type === 'pickup' && action.item === oldId) {
@@ -872,9 +901,22 @@ function removeNodeRefsFromFunctions(functions, deletedNodeId) {
             if (Array.isArray(next.on_failure)) {
                 next.on_failure = removeNodeRefsFromFunctions(next.on_failure, deletedNodeId);
             }
+            if (Array.isArray(next.branches)) {
+                next.branches = next.branches.map((branch) => ({
+                    ...branch,
+                    functions: removeNodeRefsFromFunctions(branch.functions || [], deletedNodeId),
+                }));
+            }
+            if (next.type === 'ConditionalFunction' && next.condition) {
+                next.condition = removeNodeRefsFromCondition(next.condition, deletedNodeId);
+            }
             return next;
         })
-        .filter((fn) => !(fn.type === 'MoveFunction' && fn.to === deletedNodeId));
+        .filter((fn) => {
+            if (fn.type === 'MoveFunction' && fn.to === deletedNodeId) return false;
+            if (fn.type === 'ChangeMapFunction' && fn.node === deletedNodeId) return false;
+            return true;
+        });
 }
 
 function removeItemRefsFromFunctions(functions, deletedItemId) {
@@ -894,8 +936,14 @@ function removeItemRefsFromFunctions(functions, deletedItemId) {
             if (Array.isArray(next.on_failure)) {
                 next.on_failure = removeItemRefsFromFunctions(next.on_failure, deletedItemId);
             }
-            if (next.type === 'IfFunction' && next.condition?.item === deletedItemId) {
-                next.condition = { ...next.condition, item: '' };
+            if (Array.isArray(next.branches)) {
+                next.branches = next.branches.map((branch) => ({
+                    ...branch,
+                    functions: removeItemRefsFromFunctions(branch.functions || [], deletedItemId),
+                }));
+            }
+            if (next.type === 'ConditionalFunction' && next.condition) {
+                next.condition = removeItemRefsFromCondition(next.condition, deletedItemId);
             }
             return next;
         })
@@ -911,6 +959,18 @@ function renameNodeInFunctions(functions, oldId, newId) {
         if (next.type === 'SetVariableFunction' && next.target_node === oldId) {
             next.target_node = newId;
         }
+        if (next.type === 'SetNodeStateFunction' && next.target_node === oldId) {
+            next.target_node = newId;
+        }
+        if (next.type === 'SetTextFunction' && next.target_node === oldId) {
+            next.target_node = newId;
+        }
+        if (next.type === 'SetImageFunction' && next.target_node === oldId) {
+            next.target_node = newId;
+        }
+        if (next.type === 'ChangeMapFunction' && next.node === oldId) {
+            next.node = newId;
+        }
         if (Array.isArray(next.then_functions)) {
             next.then_functions = renameNodeInFunctions(next.then_functions, oldId, newId);
         }
@@ -923,6 +983,15 @@ function renameNodeInFunctions(functions, oldId, newId) {
         if (Array.isArray(next.on_failure)) {
             next.on_failure = renameNodeInFunctions(next.on_failure, oldId, newId);
         }
+        if (Array.isArray(next.branches)) {
+            next.branches = next.branches.map((branch) => ({
+                ...branch,
+                functions: renameNodeInFunctions(branch.functions || [], oldId, newId),
+            }));
+        }
+        if (next.type === 'ConditionalFunction' && next.condition) {
+            next.condition = renameNodeInCondition(next.condition, oldId, newId);
+        }
         return next;
     });
 }
@@ -933,8 +1002,8 @@ function renameItemInFunctions(functions, oldId, newId) {
         if (next.type === 'PickUpItemFunction' && next.item === oldId) {
             next.item = newId;
         }
-        if (next.type === 'IfFunction' && next.condition?.item === oldId) {
-            next.condition = { ...next.condition, item: newId };
+        if (next.type === 'ConditionalFunction' && next.condition) {
+            next.condition = renameItemInCondition(next.condition, oldId, newId);
         }
         if (Array.isArray(next.then_functions)) {
             next.then_functions = renameItemInFunctions(next.then_functions, oldId, newId);
@@ -948,6 +1017,76 @@ function renameItemInFunctions(functions, oldId, newId) {
         if (Array.isArray(next.on_failure)) {
             next.on_failure = renameItemInFunctions(next.on_failure, oldId, newId);
         }
+        if (Array.isArray(next.branches)) {
+            next.branches = next.branches.map((branch) => ({
+                ...branch,
+                functions: renameItemInFunctions(branch.functions || [], oldId, newId),
+            }));
+        }
         return next;
     });
+}
+
+function removeNodeRefsFromConditions(conditions, deletedNodeId) {
+    return (conditions || []).map((condition) => removeNodeRefsFromCondition(condition, deletedNodeId));
+}
+
+function removeItemRefsFromConditions(conditions, deletedItemId) {
+    return (conditions || []).map((condition) => removeItemRefsFromCondition(condition, deletedItemId));
+}
+
+function renameNodeInConditions(conditions, oldId, newId) {
+    return (conditions || []).map((condition) => renameNodeInCondition(condition, oldId, newId));
+}
+
+function renameItemInConditions(conditions, oldId, newId) {
+    return (conditions || []).map((condition) => renameItemInCondition(condition, oldId, newId));
+}
+
+function removeNodeRefsFromCondition(condition, deletedNodeId) {
+    if (!condition || typeof condition !== 'object') return condition;
+    const next = { ...condition };
+    if (next.type === 'NodeStateCondition' && next.target_node === deletedNodeId) {
+        next.target_node = null;
+    }
+    if (Array.isArray(next.conditions)) {
+        next.conditions = next.conditions.map((nested) => removeNodeRefsFromCondition(nested, deletedNodeId));
+    }
+    return next;
+}
+
+function removeItemRefsFromCondition(condition, deletedItemId) {
+    if (!condition || typeof condition !== 'object') return condition;
+    const next = { ...condition };
+    if (next.type === 'HasItemCondition' && next.item === deletedItemId) {
+        next.item = '';
+    }
+    if (Array.isArray(next.conditions)) {
+        next.conditions = next.conditions.map((nested) => removeItemRefsFromCondition(nested, deletedItemId));
+    }
+    return next;
+}
+
+function renameNodeInCondition(condition, oldId, newId) {
+    if (!condition || typeof condition !== 'object') return condition;
+    const next = { ...condition };
+    if (next.type === 'NodeStateCondition' && next.target_node === oldId) {
+        next.target_node = newId;
+    }
+    if (Array.isArray(next.conditions)) {
+        next.conditions = next.conditions.map((nested) => renameNodeInCondition(nested, oldId, newId));
+    }
+    return next;
+}
+
+function renameItemInCondition(condition, oldId, newId) {
+    if (!condition || typeof condition !== 'object') return condition;
+    const next = { ...condition };
+    if (next.type === 'HasItemCondition' && next.item === oldId) {
+        next.item = newId;
+    }
+    if (Array.isArray(next.conditions)) {
+        next.conditions = next.conditions.map((nested) => renameItemInCondition(nested, oldId, newId));
+    }
+    return next;
 }

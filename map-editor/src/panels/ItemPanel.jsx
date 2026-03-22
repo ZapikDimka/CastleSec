@@ -64,6 +64,9 @@ export default function ItemPanel() {
 function countItemRefs(actions, counts) {
     for (const action of actions || []) {
         if (Array.isArray(action?.functions)) {
+            for (const condition of action.conditions || []) {
+                countItemRefsInCondition(condition, counts);
+            }
             countItemRefsInFunctions(action.functions, counts);
             continue;
         }
@@ -84,19 +87,34 @@ function countItemRefs(actions, counts) {
 function countItemRefsInFunctions(functions, counts) {
     for (const fn of functions || []) {
         if (!fn) continue;
-        if (fn.type === 'PickUpItemFunction' && fn.item && counts[fn.item] !== undefined) {
+        if ((fn.type === 'PickUpItemFunction' || fn.type === 'RemoveItemFunction') && fn.item && counts[fn.item] !== undefined) {
             counts[fn.item]++;
         }
-        if (fn.type === 'IfFunction') {
-            if (fn.condition?.item && counts[fn.condition.item] !== undefined) {
-                counts[fn.condition.item]++;
-            }
-            countItemRefsInFunctions(fn.then_functions || [], counts);
-            countItemRefsInFunctions(fn.else_functions || [], counts);
+        if (fn.type === 'ConditionalFunction') {
+            countItemRefsInCondition(fn.condition, counts);
+            countItemRefsInFunctions(fn.on_success || [], counts);
+            countItemRefsInFunctions(fn.on_failure || [], counts);
         }
         if (fn.type === 'SolveTaskFunction') {
             countItemRefsInFunctions(fn.on_success || [], counts);
             countItemRefsInFunctions(fn.on_failure || [], counts);
+        }
+        if (fn.type === 'RandomFunction') {
+            for (const branch of fn.branches || []) {
+                countItemRefsInFunctions(branch.functions || [], counts);
+            }
+        }
+    }
+}
+
+function countItemRefsInCondition(condition, counts) {
+    if (!condition || typeof condition !== 'object') return;
+    if (condition.type === 'HasItemCondition' && condition.item && counts[condition.item] !== undefined) {
+        counts[condition.item]++;
+    }
+    if (Array.isArray(condition.conditions)) {
+        for (const nested of condition.conditions) {
+            countItemRefsInCondition(nested, counts);
         }
     }
 }

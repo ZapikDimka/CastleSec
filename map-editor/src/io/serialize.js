@@ -21,10 +21,14 @@ export function serialize(state) {
         .sort()
         .map((itemId) => {
             const item = items[itemId] || {};
-            const itemCopy = { ...item, id: itemId };
-            // Omit empty image
-            if (!itemCopy.image) {
-                delete itemCopy.image;
+            const itemCopy = {
+                ...item,
+                id: itemId,
+                name: typeof item.name === 'string' ? item.name : itemId,
+                image: typeof item.image === 'string' && item.image.trim() ? item.image : 'ic_cross.svg',
+            };
+            if (typeof item.description === 'string') {
+                itemCopy.description = item.description;
             }
             return itemCopy;
         });
@@ -50,17 +54,26 @@ export function serialize(state) {
         .map((nodeId) => {
             const node = nodes[nodeId] || {};
             const nodeCopy = { ...node, id: nodeId };
-        // Omit empty image
-        if (!nodeCopy.image) {
-            delete nodeCopy.image;
-        }
+            const pos = nodePositions?.[nodeId];
+            const fallbackCoords = {
+                x: Math.round(Number(pos?.x) || 0),
+                y: Math.round(Number(pos?.y) || 0),
+            };
+            const coords = nodeCopy.coords && typeof nodeCopy.coords === 'object'
+                ? {
+                    x: Math.round(Number(nodeCopy.coords.x) || fallbackCoords.x),
+                    y: Math.round(Number(nodeCopy.coords.y) || fallbackCoords.y),
+                }
+                : fallbackCoords;
+            nodeCopy.coords = coords;
+            nodeCopy.image = typeof nodeCopy.image === 'string' && nodeCopy.image.trim() ? nodeCopy.image : 'ic_cross.svg';
 
-        // Ensure actions is always an array and strip out any editor-only flags.
-        if (!Array.isArray(nodeCopy.actions)) {
-            nodeCopy.actions = [];
-        } else {
-            nodeCopy.actions = stripUnknownFlagsDeep(nodeCopy.actions);
-        }
+            // Ensure actions is always an array and strip out any editor-only flags.
+            if (!Array.isArray(nodeCopy.actions)) {
+                nodeCopy.actions = [];
+            } else {
+                nodeCopy.actions = stripUnknownFlagsDeep(nodeCopy.actions);
+            }
 
             return nodeCopy;
         });
@@ -100,6 +113,7 @@ export function serialize(state) {
                         .map((nodeId) => ({ ...(map.nodes[nodeId] || {}), id: nodeId }));
                 return {
                     id: map.id,
+                    name: map.name || map.id,
                     root: map.id === fallbackActiveMapId ? root : map.root,
                     nodes: mapNodes,
                     ...(map._extra || {}),
@@ -113,6 +127,7 @@ export function serialize(state) {
         const otherMaps = Array.isArray(engineSync.otherMaps) ? engineSync.otherMaps : [];
         const activeMap = {
             id: activeMapId,
+            name: activeMapId,
             root,
             nodes: serializedNodes,
             ...activeMapExtra,

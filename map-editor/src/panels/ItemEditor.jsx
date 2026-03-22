@@ -145,6 +145,21 @@ export default function ItemEditor({ itemId }) {
                 />
             </div>
 
+            {/* Description */}
+            <div className="panel__section">
+                <label className="panel__label">Description</label>
+                <textarea
+                    className="panel__textarea"
+                    value={item.description || ""}
+                    onChange={(e) => dispatch({
+                        type: "UPDATE_ITEM",
+                        payload: { id: itemId, changes: { description: e.target.value } },
+                    })}
+                    rows={4}
+                    placeholder="Optional item description"
+                />
+            </div>
+
             {/* Delete */}
             <div className="panel__actions-row">
                 <button
@@ -182,6 +197,9 @@ function getItemReferences(nodes, itemId) {
 function findRefsInActions(actions, nodeId, itemId, refs) {
     for (const action of actions || []) {
         if (Array.isArray(action?.functions)) {
+            for (const condition of action.conditions || []) {
+                findRefsInCondition(condition, nodeId, itemId, refs);
+            }
             findRefsInFunctions(action.functions, nodeId, itemId, refs);
             continue;
         }
@@ -202,19 +220,34 @@ function findRefsInActions(actions, nodeId, itemId, refs) {
 function findRefsInFunctions(functions, nodeId, itemId, refs) {
     for (const fn of functions || []) {
         if (!fn) continue;
-        if (fn.type === 'PickUpItemFunction' && fn.item === itemId) {
-            refs.push({ nodeId, type: 'pickup function' });
+        if ((fn.type === 'PickUpItemFunction' || fn.type === 'RemoveItemFunction') && fn.item === itemId) {
+            refs.push({ nodeId, type: fn.type === 'PickUpItemFunction' ? 'pickup function' : 'remove-item function' });
         }
-        if (fn.type === 'IfFunction') {
-            if (fn.condition?.item === itemId) {
-                refs.push({ nodeId, type: `${fn.condition.type || 'if'} condition` });
-            }
-            findRefsInFunctions(fn.then_functions || [], nodeId, itemId, refs);
-            findRefsInFunctions(fn.else_functions || [], nodeId, itemId, refs);
+        if (fn.type === 'ConditionalFunction') {
+            findRefsInCondition(fn.condition, nodeId, itemId, refs);
+            findRefsInFunctions(fn.on_success || [], nodeId, itemId, refs);
+            findRefsInFunctions(fn.on_failure || [], nodeId, itemId, refs);
         }
         if (fn.type === 'SolveTaskFunction') {
             findRefsInFunctions(fn.on_success || [], nodeId, itemId, refs);
             findRefsInFunctions(fn.on_failure || [], nodeId, itemId, refs);
+        }
+        if (fn.type === 'RandomFunction') {
+            for (const branch of fn.branches || []) {
+                findRefsInFunctions(branch.functions || [], nodeId, itemId, refs);
+            }
+        }
+    }
+}
+
+function findRefsInCondition(condition, nodeId, itemId, refs) {
+    if (!condition || typeof condition !== 'object') return;
+    if (condition.type === 'HasItemCondition' && condition.item === itemId) {
+        refs.push({ nodeId, type: 'has-item condition' });
+    }
+    if (Array.isArray(condition.conditions)) {
+        for (const nested of condition.conditions) {
+            findRefsInCondition(nested, nodeId, itemId, refs);
         }
     }
 }

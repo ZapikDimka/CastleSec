@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
-import FunctionList from './FunctionList';
+import FunctionList, { ConditionListEditor } from './FunctionList';
 
 function normalizeActionChoice(action) {
     return {
         label: typeof action?.label === 'string' ? action.label : '',
         once: Boolean(action?.once),
         functions: Array.isArray(action?.functions) ? action.functions : [],
+        conditions: Array.isArray(action?.conditions) ? action.conditions : [],
     };
 }
 
@@ -46,6 +47,14 @@ export default function ActionEditor({ action, onChange }) {
                     title="Functions"
                     functions={normalized.functions}
                     onChange={(functions) => updateChoice({ functions })}
+                />
+            </div>
+
+            <div className="action-editor__field">
+                <ConditionListEditor
+                    title="Action Conditions"
+                    conditions={normalized.conditions}
+                    onChange={(conditions) => updateChoice({ conditions })}
                 />
             </div>
         </div>
