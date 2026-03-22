@@ -57,7 +57,7 @@
 <div class="overlay" id="confirmOverlay">
     <div class="modal" style="max-width: 400px;">
         <div class="modalTop">
-            <h3 style="margin:0; font-size:15px">⚠️ Підтвердження</h3>
+            <h3 style="margin:0; font-size:15px">Підтвердження</h3>
         </div>
         <div class="modalBody">
             <p style="text-align:center; margin: 10px 0;">Ви впевнені, що хочете скинути стан?</p>
@@ -66,6 +66,17 @@
             <button onclick="closeConfirm()">Ні</button>
             <button class="primary" onclick="confirmReset()">Так</button>
         </div>
+    </div>
+</div>
+
+<div class="overlay" id="mapOverlay">
+    <div class="modal map-modal">
+        <div class="modalTop flex-between">
+            <h3 style="margin:0; font-size:15px">Мапа локацій</h3>
+            <button class="close-btn" onclick="toggleMap()">&times;</button>
+        </div>
+        <div class="modalBody map-container" id="mapContainer">
+            </div>
     </div>
 </div>
 

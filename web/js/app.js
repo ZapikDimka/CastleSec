@@ -1,12 +1,20 @@
 const API_URL = "http://127.0.0.1:8000";
 
-// Отримання поточного стану (GET /current-state)
+let mapState = {
+    zoom: 1,
+    offsetX: 0,
+    offsetY: 0,
+    isDragging: false,
+    startX: 0,
+    startY: 0
+};
+
 async function updateState() {
     try {
-        const response = await fetch(`${API_URL}/current-state`); // [cite: 6, 13]
+        const response = await fetch(`${API_URL}/current-state`);
         if (!response.ok) throw new Error("Server unreachable");
 
-        const data = await response.json(); // [cite: 20]
+        const data = await response.json();
         renderGame(data);
     } catch (err) {
         log("ERROR: Не вдалося отримати стан з API.");
@@ -14,15 +22,14 @@ async function updateState() {
     }
 }
 
-// Виконання дії (POST /perform-action/{index})
 async function doAction(index) {
     try {
-        const response = await fetch(`${API_URL}/perform-action/${index}`, { // [cite: 84]
+        const response = await fetch(`${API_URL}/perform-action/${index}`, {
             method: 'POST',
-            headers: { 'accept': 'application/json' } // [cite: 13, 61]
+            headers: { 'accept': 'application/json' }
         });
 
-        if (response.status === 422) { //
+        if (response.status === 422) {
             log("SYSTEM: Помилка валідації (невірний індекс).");
             return;
         }
@@ -38,9 +45,12 @@ function renderGame(data) {
     document.getElementById("sceneTitle").innerText = data.node.name || "Unknown";
     document.getElementById("sceneSub").innerText = data.is_solving_task ? "Потрібне вирішення завдання" : "Локація дослідження";
     document.getElementById("sceneDescText").innerText = data.node.text || "";
-document.getElementById("sceneImgBox").innerHTML = `<img src="/game/assets/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
 
-    // Рендер кнопок дій [cite: 27-35]
+    const imgBox = document.getElementById("sceneImgBox");
+    if (data.node.image) {
+        imgBox.innerHTML = `<img src="/game/assets/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
+    }
+
     const btnRow = document.getElementById("navButtons");
     btnRow.innerHTML = "";
 
@@ -51,13 +61,12 @@ document.getElementById("sceneImgBox").innerHTML = `<img src="/game/assets/${dat
             btn.innerText = act.text;
             btn.onclick = () => {
                 log(`Виконую: ${act.text}`);
-                doAction(idx); // Передаємо індекс дії [cite: 88-91]
+                doAction(idx);
             };
             btnRow.appendChild(btn);
         });
     }
 
-    // Рендер інвентарю [cite: 46-48, 75-82]
     const invBox = document.getElementById("inventoryContainer");
     invBox.innerHTML = "";
     const items = data.inventory?.items || [];
@@ -75,6 +84,151 @@ document.getElementById("sceneImgBox").innerHTML = `<img src="/game/assets/${dat
             invBox.appendChild(itemEl);
         });
     }
+}
+
+function toggleMap() {
+    const overlay = document.getElementById("mapOverlay");
+    overlay.classList.toggle("show");
+
+    if (overlay.classList.contains("show")) {
+        log("SYSTEM: Завантаження карти...");
+        mapState = { zoom: 1, offsetX: 0, offsetY: 0, isDragging: false };
+        buildMap();
+        initMapControls();
+    }
+}
+
+function initMapControls() {
+    const container = document.getElementById("mapContainer");
+
+    container.onwheel = (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? 0.9 : 1.1;
+        mapState.zoom = Math.min(Math.max(mapState.zoom * delta, 0.5), 3);
+        applyMapTransform();
+    };
+
+    container.onmousedown = (e) => {
+        if (e.button !== 0) return;
+        mapState.isDragging = true;
+        mapState.startX = e.clientX - mapState.offsetX;
+        mapState.startY = e.clientY - mapState.offsetY;
+        container.style.cursor = 'grabbing';
+    };
+
+    window.onmousemove = (e) => {
+        if (!mapState.isDragging) return;
+        mapState.offsetX = e.clientX - mapState.startX;
+        mapState.offsetY = e.clientY - mapState.startY;
+        applyMapTransform();
+    };
+
+    window.onmouseup = () => {
+        mapState.isDragging = false;
+        container.style.cursor = 'default';
+    };
+}
+
+function applyMapTransform() {
+    const content = document.getElementById("mapContent");
+    if (content) {
+        content.style.transform = `translate(${mapState.offsetX}px, ${mapState.offsetY}px) scale(${mapState.zoom})`;
+    }
+}
+
+async function buildMap() {
+    const container = document.getElementById("mapContainer");
+    container.innerHTML = `<div id="mapContent" style="position: absolute; inset: 0; transform-origin: 0 0;"></div>`;
+    const content = document.getElementById("mapContent");
+
+    try {
+        const response = await fetch(`${API_URL}/current-state`);
+        const data = await response.json();
+        const gridScale = 250;
+        const currentId = data.node.id;
+
+        if (data.map_nodes) {
+            if (data.edges) {
+                const nodeLookup = new Map();
+                data.map_nodes.forEach(n => nodeLookup.set(n.id, n));
+
+                data.edges.forEach(edge => {
+                    const n1 = nodeLookup.get(edge.from_id);
+                    const n2 = nodeLookup.get(edge.to_id);
+                    if (n1 && n2) createConnectionLine(n1, n2, content, gridScale);
+                });
+            }
+
+            let targetNode = null;
+
+            data.map_nodes.forEach(node => {
+                const isCurrent = node.id === currentId;
+                const nodeEl = createNodeElement(node, content, gridScale, isCurrent);
+                if (isCurrent) targetNode = node;
+            });
+
+            if (targetNode) {
+                centerMapOnNode(targetNode, gridScale);
+            }
+
+            log("SYSTEM: Карта завантажена успішно.");
+        }
+    } catch (err) {
+        log("ERROR: Не вдалося побудувати карту.");
+    }
+}
+
+function centerMapOnNode(node, scale) {
+    const container = document.getElementById("mapContainer");
+
+    const centerX = container.clientWidth / 2;
+    const centerY = container.clientHeight / 2;
+
+    mapState.offsetX = centerX - (node.coords.x * scale * mapState.zoom);
+    mapState.offsetY = centerY - (node.coords.y * scale * mapState.zoom);
+
+    applyMapTransform();
+}
+
+function createNodeElement(node, container, scale, isCurrent) {
+    const nodeEl = document.createElement("div");
+    nodeEl.className = `map-node ${node.visited ? '' : 'unvisited'}`;
+    if (isCurrent) nodeEl.classList.add("current-node");
+
+    nodeEl.style.left = `${node.coords.x * scale}px`;
+    nodeEl.style.top = `${node.coords.y * scale}px`;
+
+    const imgPath = node.visited ? `assets/${node.image || 'background1.jpg'}` : 'assets/locked_node.png';
+
+    nodeEl.innerHTML = `
+        <div class="map-node-img-wrapper">
+            <img src="${imgPath}" class="map-node-img">
+            ${!node.visited ? '<div class="lock-icon">🔒</div>' : ''}
+        </div>
+        <div class="map-node-name">${node.visited ? node.name : '??'}</div>
+    `;
+
+    container.appendChild(nodeEl);
+    return nodeEl;
+}
+
+function createConnectionLine(node1, node2, content, scale) {
+    const x1 = node1.coords.x * scale;
+    const y1 = node1.coords.y * scale;
+    const x2 = node2.coords.x * scale;
+    const y2 = node2.coords.y * scale;
+
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
+
+    const line = document.createElement("div");
+    line.className = `map-connection ${(!node1.visited || !node2.visited) ? 'dimmed' : ''}`;
+    line.style.width = `${length}px`;
+    line.style.left = `${x1}px`;
+    line.style.top = `${y1}px`;
+    line.style.transform = `rotate(${angle}deg)`;
+
+    content.appendChild(line);
 }
 
 function log(msg) {
@@ -95,10 +249,6 @@ function confirmReset() {
     closeConfirm();
     log("SYSTEM: Скидання стану до початкового...");
     updateState();
-}
-
-function toggleMap() {
-    log("SYSTEM: Карта тимчасово недоступна.");
 }
 
 window.onload = updateState;
