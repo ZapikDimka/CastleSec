@@ -91,7 +91,6 @@ function toggleMap() {
     overlay.classList.toggle("show");
 
     if (overlay.classList.contains("show")) {
-        log("SYSTEM: Завантаження карти...");
         mapState = { zoom: 1, offsetX: 0, offsetY: 0, isDragging: false };
         buildMap();
         initMapControls();
@@ -234,7 +233,8 @@ function createConnectionLine(node1, node2, content, scale) {
 function log(msg) {
     const logEl = document.getElementById("gameLog");
     const time = new Date().toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
-    logEl.innerText = `[${time}] ${msg}\n` + logEl.innerText;
+    logEl.innerText += `[${time}] ${msg}\n`;
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
 function showConfirm() {
