@@ -197,15 +197,15 @@ function createNodeElement(node, container, scale, isCurrent) {
     nodeEl.style.left = `${node.coords.x * scale}px`;
     nodeEl.style.top = `${node.coords.y * scale}px`;
 
-    const imgPath = node.visited ? `/game/assets/${node.image || 'background1.jpg'}` : 'assets/locked_node.png';
+    let nodeContent = `<div class="map-node-img-wrapper">`;
 
-    nodeEl.innerHTML = `
-        <div class="map-node-img-wrapper">
-            <img src="${imgPath}" class="map-node-img">
-            ${!node.visited ? '<div class="lock-icon">🔒</div>' : ''}
-        </div>
-        <div class="map-node-name">${node.visited ? node.name : '??'}</div>
-    `;
+    if (node.visited) {
+        nodeContent += `<img src="/game/assets/${node.image}" class="map-node-img">`;
+    } else {
+        nodeContent += `<div class="lock-icon">🔒</div>`;
+    }
+    nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : '??'}</div>`;
+    nodeEl.innerHTML = nodeContent;
 
     container.appendChild(nodeEl);
     return nodeEl;
