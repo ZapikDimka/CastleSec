@@ -23,6 +23,7 @@ class MapNodeDto(BaseModel):
 class NodeSummaryDto(BaseModel):
     id: str
     name: str
+    image: str
     coords: Coords
     visited: bool
 
@@ -60,6 +61,7 @@ def node_to_summary_dto(node: Node, visited: bool, variables: dict[str, str]) ->
     return NodeSummaryDto(
         id=node.id,
         name=interpolate(node.name, variables),
+        image=node.image.root,
         coords=node.coords,
         visited=visited
     )
