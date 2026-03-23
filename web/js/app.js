@@ -197,7 +197,7 @@ function createNodeElement(node, container, scale, isCurrent) {
     nodeEl.style.left = `${node.coords.x * scale}px`;
     nodeEl.style.top = `${node.coords.y * scale}px`;
 
-    const imgPath = node.visited ? `assets/${node.image || 'background1.jpg'}` : 'assets/locked_node.png';
+    const imgPath = node.visited ? `/game/assets/${node.image || 'background1.jpg'}` : 'assets/locked_node.png';
 
     nodeEl.innerHTML = `
         <div class="map-node-img-wrapper">
