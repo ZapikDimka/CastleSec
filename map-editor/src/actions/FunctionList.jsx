@@ -1,6 +1,7 @@
 import { useMemo, useState, useEffect } from 'react';
 import NodePicker from '../shared/NodePicker';
 import ItemPicker from '../shared/ItemPicker';
+import ImagePicker from '../shared/ImagePicker';
 import { useMapState } from '../state/MapContext';
 
 const FUNCTION_TYPE_OPTIONS = [
@@ -858,13 +859,10 @@ function SetImageFunctionEditor({ fn, onChange }) {
         <>
             <OptionalNodeTargetEditor value={normalized.target_node} onChange={(target_node) => onChange({ ...normalized, target_node })} />
             <div className="action-editor__field">
-                <label className="action-editor__label">Image Ref (asset id/path)</label>
-                <input
-                    className="panel__input"
-                    type="text"
-                    value={normalized.value || ''}
-                    onChange={(e) => onChange({ ...normalized, value: e.target.value })}
-                    spellCheck={false}
+                <label className="action-editor__label">Image</label>
+                <ImagePicker
+                    value={typeof normalized.value === 'string' ? normalized.value : ''}
+                    onChange={(value) => onChange({ ...normalized, value: value || '' })}
                 />
             </div>
         </>

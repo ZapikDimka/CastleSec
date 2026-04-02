@@ -6,7 +6,20 @@ import Toolbar from './shared/Toolbar';
 import Canvas from './canvas/Canvas';
 import NodeEditor from './panels/NodeEditor';
 import ItemPanel from './panels/ItemPanel';
+import SettingsPanel from './panels/SettingsPanel';
 import FullscreenModal from './shared/FullscreenModal';
+import {
+  clearFolderFileCache,
+  getDefaultAssetBaseDir,
+  hydrateAssetFolderFromDirectoryHandle,
+  setConfiguredAssetBaseDir,
+} from './shared/assetHelper';
+import {
+  clearMapAssetFolderConfig,
+  loadMapAssetFolderConfig,
+  saveMapAssetFolderHandle,
+  saveMapAssetFolderPath,
+} from './io/assetFolderConfig';
 
 function AppContent() {
   const state = useMapState();
@@ -15,6 +28,8 @@ function AppContent() {
   const appBodyRef = useRef(null);
 
   const [fullscreenImageUrl, setFullscreenImageUrl] = useState(null);
+  const [assetFolderSummary, setAssetFolderSummary] = useState(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+  const [isApplyingAssetFolder, setIsApplyingAssetFolder] = useState(false);
 
   // Global Fullscreen opener
   useEffect(() => {
@@ -145,7 +160,116 @@ function AppContent() {
 
   const effectiveTab = activeTab;
 
-  const showPanel = selectedNodeId !== null || selectedItemId !== null || activeTab === 'items';
+  const showPanel = selectedNodeId !== null || selectedItemId !== null || activeTab === 'items' || activeTab === 'settings';
+
+  const applyMapAssetFolderConfig = useCallback(async (mapFileKey) => {
+    setIsApplyingAssetFolder(true);
+    try {
+      clearFolderFileCache();
+
+      if (!mapFileKey) {
+        setConfiguredAssetBaseDir(null);
+        setAssetFolderSummary(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+        return;
+      }
+
+      const config = await loadMapAssetFolderConfig(mapFileKey);
+
+      if (config?.mode === 'handle' && config.handle) {
+        if (typeof config.handle.requestPermission === 'function') {
+          const readPermission = await config.handle.requestPermission({ mode: 'read' });
+          if (readPermission !== 'granted') {
+            setConfiguredAssetBaseDir(null);
+            setAssetFolderSummary(`Folder permission denied for "${mapFileKey}". Using default assets folder: ${getDefaultAssetBaseDir()}`);
+            return;
+          }
+        }
+
+        await hydrateAssetFolderFromDirectoryHandle(config.handle);
+        setConfiguredAssetBaseDir(null);
+        setAssetFolderSummary(`Using selected folder for "${mapFileKey}": ${config.label || config.handle.name}`);
+        return;
+      }
+
+      if (config?.mode === 'path' && config.path) {
+        setConfiguredAssetBaseDir(config.path);
+        setAssetFolderSummary(`Using custom assets folder for "${mapFileKey}": ${config.path}`);
+        return;
+      }
+
+      setConfiguredAssetBaseDir(null);
+      setAssetFolderSummary(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+    } catch (error) {
+      console.error('Failed to apply asset-folder config:', error);
+      clearFolderFileCache();
+      setConfiguredAssetBaseDir(null);
+      setAssetFolderSummary(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+    } finally {
+      setIsApplyingAssetFolder(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    applyMapAssetFolderConfig(state.filePath);
+  }, [state.filePath, applyMapAssetFolderConfig]);
+
+  const handlePickAssetFolderHandle = useCallback(async (handle) => {
+    if (!state.filePath || !handle) return;
+    setIsApplyingAssetFolder(true);
+    try {
+      if (typeof handle.requestPermission === 'function') {
+        const readPermission = await handle.requestPermission({ mode: 'read' });
+        if (readPermission !== 'granted') {
+          setAssetFolderSummary(`Folder permission denied for "${state.filePath}".`);
+          return;
+        }
+      }
+      await saveMapAssetFolderHandle(state.filePath, handle);
+      clearFolderFileCache();
+      await hydrateAssetFolderFromDirectoryHandle(handle);
+      setConfiguredAssetBaseDir(null);
+      setAssetFolderSummary(`Using selected folder for "${state.filePath}": ${handle.name || 'Selected folder'}`);
+    } catch (error) {
+      console.error('Failed to persist folder handle:', error);
+      setAssetFolderSummary(`Failed to set folder for "${state.filePath}". Using default assets folder.`);
+      setConfiguredAssetBaseDir(null);
+    } finally {
+      setIsApplyingAssetFolder(false);
+    }
+  }, [state.filePath]);
+
+  const handlePickAssetFolderPath = useCallback(async (path) => {
+    if (!state.filePath || !path) return;
+    setIsApplyingAssetFolder(true);
+    try {
+      await saveMapAssetFolderPath(state.filePath, path);
+      clearFolderFileCache();
+      setConfiguredAssetBaseDir(path);
+      setAssetFolderSummary(`Using custom assets folder for "${state.filePath}": ${path}`);
+    } catch (error) {
+      console.error('Failed to persist folder path:', error);
+      setAssetFolderSummary(`Failed to set folder for "${state.filePath}". Using default assets folder.`);
+      setConfiguredAssetBaseDir(null);
+    } finally {
+      setIsApplyingAssetFolder(false);
+    }
+  }, [state.filePath]);
+
+  const handleClearAssetFolder = useCallback(async () => {
+    if (!state.filePath) return;
+    setIsApplyingAssetFolder(true);
+    try {
+      await clearMapAssetFolderConfig(state.filePath);
+      clearFolderFileCache();
+      setConfiguredAssetBaseDir(null);
+      setAssetFolderSummary(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+    } catch (error) {
+      console.error('Failed to clear asset-folder config:', error);
+      setAssetFolderSummary(`Using default assets folder: ${getDefaultAssetBaseDir()}`);
+    } finally {
+      setIsApplyingAssetFolder(false);
+    }
+  }, [state.filePath]);
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
@@ -217,6 +341,12 @@ function AppContent() {
                 >
                   Items
                 </button>
+                <button
+                  className={`panel-tab ${effectiveTab === 'settings' ? 'panel-tab--active' : ''}`}
+                  onClick={() => handleTabChange('settings')}
+                >
+                  Settings
+                </button>
               </div>
 
               {/* Panel Content */}
@@ -229,6 +359,16 @@ function AppContent() {
                 </div>
               )}
               {effectiveTab === 'items' && <ItemPanel />}
+              {effectiveTab === 'settings' && (
+                <SettingsPanel
+                  filePath={state.filePath}
+                  assetFolderSummary={assetFolderSummary}
+                  isApplyingAssetFolder={isApplyingAssetFolder}
+                  onPickAssetFolderHandle={handlePickAssetFolderHandle}
+                  onPickAssetFolderPath={handlePickAssetFolderPath}
+                  onClearAssetFolder={handleClearAssetFolder}
+                />
+              )}
             </div>
           </div>
         )}
