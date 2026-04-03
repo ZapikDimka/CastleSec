@@ -1,10 +1,72 @@
 const blobCache = new Map();
+const folderCacheKeys = new Set();
+
+const DEFAULT_ASSET_BASE_DIR =
+    import.meta.env.VITE_MAP_EDITOR_ASSET_DIR ||
+    '/Users/qenze/Work/Projects/CastleSec/game/assets';
+
+let configuredAssetBaseDir = null;
 
 export function cacheFileUrl(filename, url) {
     if (blobCache.has(filename)) {
         URL.revokeObjectURL(blobCache.get(filename));
     }
     blobCache.set(filename, url);
+}
+
+function cacheFolderFileUrl(filename, url) {
+    folderCacheKeys.add(filename);
+    cacheFileUrl(filename, url);
+}
+
+export function clearFolderFileCache() {
+    for (const key of folderCacheKeys) {
+        if (blobCache.has(key)) {
+            URL.revokeObjectURL(blobCache.get(key));
+            blobCache.delete(key);
+        }
+    }
+    folderCacheKeys.clear();
+}
+
+export function setConfiguredAssetBaseDir(baseDir) {
+    configuredAssetBaseDir = typeof baseDir === 'string' && baseDir.trim() ? baseDir.trim() : null;
+}
+
+export function getDefaultAssetBaseDir() {
+    return DEFAULT_ASSET_BASE_DIR;
+}
+
+function joinPath(base, relative) {
+    const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const cleanRelative = relative.startsWith('/') ? relative.slice(1) : relative;
+    return `${cleanBase}/${cleanRelative}`;
+}
+
+async function cacheDirectoryEntryRecursive(directoryHandle, prefix = '') {
+    // eslint-disable-next-line no-restricted-syntax
+    for await (const entry of directoryHandle.values()) {
+        if (entry.kind === 'directory') {
+            await cacheDirectoryEntryRecursive(entry, `${prefix}${entry.name}/`);
+            continue;
+        }
+        if (entry.kind !== 'file') continue;
+
+        const file = await entry.getFile();
+        const fileUrl = URL.createObjectURL(file);
+        const relativeKey = `${prefix}${entry.name}`;
+
+        cacheFolderFileUrl(relativeKey, fileUrl);
+        // Also index by basename so maps that store only "file.png" can resolve
+        // assets located in nested subfolders of the selected asset directory.
+        cacheFolderFileUrl(entry.name, fileUrl);
+    }
+}
+
+export async function hydrateAssetFolderFromDirectoryHandle(directoryHandle) {
+    clearFolderFileCache();
+    if (!directoryHandle) return;
+    await cacheDirectoryEntryRecursive(directoryHandle);
 }
 
 /**
@@ -28,7 +90,6 @@ export function getAssetUrl(imagePath) {
         return imagePath;
     }
 
-    // In Vite dev mode, we can use the special /@fs/ prefix to serve files from allowed parent directories.
-    // Ensure this path matches the absolute path to your CastleSec/game/assets folder.
-    return `/@fs/Users/qenze/Work/Projects/CastleSec/game/assets/${imagePath}`;
+    const baseDir = configuredAssetBaseDir || DEFAULT_ASSET_BASE_DIR;
+    return `/@fs/${joinPath(baseDir, imagePath)}`;
 }
