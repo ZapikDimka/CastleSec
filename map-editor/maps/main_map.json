@@ -38,10 +38,40 @@
       "description": "Відкриває нові проходи"
     },
     {
+      "id": "ITEM_16",
+      "name": "Форма Вартового",
+      "image": "ic_cross.svg",
+      "description": "Дозволяє проходити у місця, доступі для вартових."
+    },
+    {
+      "id": "ITEM_17",
+      "name": "Погони Полковника",
+      "image": "ic_cross.svg",
+      "description": "Дають змогу пройти крізь Внутрішні Ворота"
+    },
+    {
+      "name": "Мапа Піземелля",
+      "image": "ic_cross.svg",
+      "description": "Відкриває прохід у таємну секцію Серверного Замку.",
+      "id": "ITEM_18"
+    },
+    {
       "id": "ITEM_2",
       "name": "Компас Скоупу",
       "image": "ic_cross.svg",
       "description": "Це – компас скоупу. Він приведе тебе прямо до корони найкоротшим шляхом. Але будь обачним – ти можеш щось випустити."
+    },
+    {
+      "id": "ITEM_21",
+      "name": "Лист Королю",
+      "image": "ic_cross.svg",
+      "description": "Діма"
+    },
+    {
+      "id": "ITEM_22",
+      "name": "Сувій Імен",
+      "image": "ic_cross.svg",
+      "description": "Діма"
     },
     {
       "id": "ITEM_3",
@@ -92,10 +122,22 @@
       "description": "(F$#Ґ£Nu3ї?2 – прилад, необхідний, щоби зробити B$£I%fc__$)”. Частина 7/7"
     },
     {
-      "name": "Лист Королю",
+      "id": "ITEM_4",
+      "name": "Ласо Перехоплення",
       "image": "ic_cross.svg",
-      "description": "Діма",
-      "id": "ITEM_41"
+      "description": "Дозволяє зупиняти каравани. "
+    },
+    {
+      "id": "ITEM_5",
+      "name": "Слухавка Відлуння",
+      "image": "ic_cross.svg",
+      "description": "«Слухавка відлуння (TM):\nСтарі логи збирайте,\nНічого не забувайте!»"
+    },
+    {
+      "name": "Ліхтар Пасивного Сканера",
+      "image": "ic_cross.svg",
+      "description": "Дозволяє відкривати проходи, які раніше були приховані.",
+      "id": "ITEM_6"
     }
   ],
   "maps": [
@@ -1234,8 +1276,8 @@
           "text": "Атмосфера Проміжного Острову сильно відрізняється від атмосфери Клієнтської долини. Містян значно поменшало. Натомість, повсюди марширують вартові. Поруч стоїть табличка:\nПОРУШНИКИ ПРАВ ДОСТУПУ БУДУТЬ СУВОРО ПОКАРАНІ",
           "image": "outer_yard.png",
           "coords": {
-            "x": 67,
-            "y": -1453
+            "x": 77,
+            "y": -1447
           },
           "actions": [
             {
@@ -1259,6 +1301,28 @@
                 }
               ],
               "conditions": []
+            },
+            {
+              "label": "Перейти до Казарм",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_40"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Головної Дороги",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_46"
+                }
+              ],
+              "conditions": []
             }
           ],
           "id": "NODE_31"
@@ -1268,18 +1332,14 @@
           "text": "Великі ворота ведуть до поштового відділу. Для чужинців вони замкнені.",
           "image": "postal_gates_closed.png",
           "coords": {
-            "x": -216,
-            "y": -1452
+            "x": -409,
+            "y": -1454
           },
           "actions": [
             {
               "label": "Використати Сесійну Печатку",
               "once": true,
               "functions": [
-                {
-                  "type": "RemoveItemFunction",
-                  "item": "ITEM_15"
-                },
                 {
                   "type": "SetImageFunction",
                   "target_node": null,
@@ -1353,8 +1413,8 @@
           "text": "Крізь невелике вікно виглядає суворе обличчя королівського слуги. Він очікує на щось…",
           "image": "session_terminal.png",
           "coords": {
-            "x": -472,
-            "y": -1457
+            "x": -687,
+            "y": -1459
           },
           "actions": [
             {
@@ -1407,8 +1467,8 @@
           "text": "У великому приміщенні юрмляться роботи-сортувальники. Коробки та листи розподіляються на різні конвеєри. Може, серед них є щось корисні?",
           "image": "postal_sorting.png",
           "coords": {
-            "x": -230,
-            "y": -1671
+            "x": -410,
+            "y": -1676
           },
           "actions": [
             {
@@ -1443,7 +1503,7 @@
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
-                      "item": "ITEM_41"
+                      "item": "ITEM_21"
                     },
                     {
                       "type": "ShowMessageFunction",
@@ -1452,6 +1512,17 @@
                   ],
                   "on_failure": [],
                   "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Сховища Посилок",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_36"
                 }
               ],
               "conditions": []
@@ -1464,8 +1535,8 @@
           "text": "Темна комірчина завалена відбракованою поштою. І клопами.",
           "image": "postal_utility_room.png",
           "coords": {
-            "x": -472,
-            "y": -1670
+            "x": -684,
+            "y": -1678
           },
           "actions": [
             {
@@ -1481,6 +1552,236 @@
             }
           ],
           "id": "NODE_35"
+        },
+        {
+          "name": "СХОВИЩЕ ПОСИЛОК",
+          "text": "Відсортована пошта потрапляє у сховище. Місцеві працівники складають її та переносять до станції караванів. Скраю непримітні двері – на замку.",
+          "image": "parcel_storage_closed_door.png",
+          "coords": {
+            "x": -396,
+            "y": -1888
+          },
+          "actions": [
+            {
+              "label": "Використати Секретний Ключ",
+              "once": true,
+              "functions": [
+                {
+                  "type": "RemoveItemFunction",
+                  "item": "ITEM_12"
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "parcel_storage_opened door.png"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Відсортована пошта потрапляє у сховище. Місцеві працівники складають її та переносять до станції караванів. Непримітні двері на замку відчинились."
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "door_opened"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Таємної секції Сховища",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_39"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "door_opened",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Сортування Пошти",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_34"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Столу Накладних",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_37"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Відправки Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_38"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_36"
+        },
+        {
+          "name": "СТІЛ НАКЛАДНИХ",
+          "text": "На широкому стелі лежать папери – накладні на пошту.",
+          "image": "waybill_desk_cabinet_closed.png",
+          "coords": {
+            "x": -686,
+            "y": -1895
+          },
+          "actions": [
+            {
+              "label": "Використати Сесійну Печатку",
+              "once": true,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Шухляда відчиняється. У ній лежать якісь старі накладні."
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "waybill_desk_cabinet_opened.png"
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "cabinet_opened"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_15",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Оглянути старі логи",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Діма"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "cabinet_opened",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Сховища Посилок",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_36"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_37"
+        },
+        {
+          "name": "ВІДПРАВКА КАРАВАНІВ",
+          "text": "Широка платформа сповнена верблюдів. Саме вони переносять посилки на сервер. Поруч робітники – вони пакують дані у джейсони та навантажують верблюдів.",
+          "image": "caravan_sending.png",
+          "coords": {
+            "x": -408,
+            "y": -2106
+          },
+          "actions": [
+            {
+              "label": "Перейти до Сховища Посилок",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_36"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_38"
+        },
+        {
+          "name": "ТАЄМНА СЕКЦІЯ СХОВИЩА",
+          "text": "У цій секції, схоже, зберігаються таємні посилки. А на підлозі лежить якийсь дивний предмет із запискою…",
+          "image": "secret_section.png",
+          "coords": {
+            "x": -157,
+            "y": -1887
+          },
+          "actions": [
+            {
+              "label": "Підняти Ласо Перехоплення",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "ITEM_4"
+                },
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Ласо перехоплення дозволить тобі зупиняти каравани. Не нехтуй можливістю. Всередині можуть бути бомбезні штуки."
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "У цій секції, схоже, зберігаються таємні посилки."
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "secret_section.png"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Сховища Посилок",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_36"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_39"
         },
         {
           "name": "ДОШКА ОГОЛОШЕНЬ",
@@ -1527,6 +1828,426 @@
             }
           ],
           "id": "NODE_4"
+        },
+        {
+          "name": "КАЗАРМИ",
+          "text": "Брезентові палатки кольору хакі слугують домівкою солдатам Короля.",
+          "image": "barracks.png",
+          "coords": {
+            "x": 342,
+            "y": -1642
+          },
+          "actions": [
+            {
+              "label": "Перейти до Зовнішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_31"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Тренувального Плацу",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_41"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Чорного Ходу",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_42"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Солдатської Їдальні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_43"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_40"
+        },
+        {
+          "name": "ТРЕНУВАЛЬНИЙ ПЛАЦ",
+          "text": "На плаці солдати виконують віджимання. Хтось із старших по званню кричить, як недорізаний.",
+          "image": "training_ground.png",
+          "coords": {
+            "x": 320,
+            "y": -1455
+          },
+          "actions": [
+            {
+              "label": "Перейти до Казарм",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_40"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_41"
+        },
+        {
+          "name": "ЧОРНИЙ ХІД",
+          "text": "Запасний вхід до казарм. Навряд ним користуються часто. Форма вартового, що висить на гачку, вже трохи вицвіла. Але досі може згодитися…",
+          "image": "дверофобне библо.png",
+          "coords": {
+            "x": 591,
+            "y": -1645
+          },
+          "actions": [
+            {
+              "label": "Задача 6",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "6",
+                  "on_success": [
+                    {
+                      "type": "SetImageFunction",
+                      "target_node": null,
+                      "value": "дверофобне библо.png"
+                    },
+                    {
+                      "type": "PickUpItemFunction",
+                      "item": "ITEM_16"
+                    },
+                    {
+                      "type": "ShowMessageFunction",
+                      "message": "Форма вартового дозволяє проходити у місця, доступі для вартових."
+                    },
+                    {
+                      "type": "SetTextFunction",
+                      "target_node": null,
+                      "variable": "text",
+                      "value": "Запасний вхід до казарм."
+                    }
+                  ],
+                  "on_failure": [],
+                  "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Казарм",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_40"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_42"
+        },
+        {
+          "name": "СОЛДАТСЬКА ЇДАЛЬНЯ",
+          "text": "На столах у їдальні вже розкладений обід. З кухні долинає брязкання посуду.",
+          "image": "soldiers_canteen.png",
+          "coords": {
+            "x": 302,
+            "y": -1886
+          },
+          "actions": [
+            {
+              "label": "Перейти до Казарм",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_40"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Солдатської Кухні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_44"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_43"
+        },
+        {
+          "name": "СОЛДАТСЬКА КУХНЯ",
+          "text": "Гори немитого посуду на кухонного приладдя вказують, що кухарі не зовсім добре пораються зі своїми обов’язками. Зате у кутку стоїть свіжовипечене печиво – апетитне.",
+          "image": "kitchen.png",
+          "coords": {
+            "x": 576,
+            "y": -1883
+          },
+          "actions": [
+            {
+              "label": "Перейти до Солдатської Їдальні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_43"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Продуктової Комори",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_45"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_44"
+        },
+        {
+          "name": "ПРОДУКТОВА КОМОРА",
+          "text": "Полиці завалені різного роду продуктами. Оскільки готують для солдат, овочі здебільшого підгнилі, а м’ясо ледь-ледь проглядається на кістках.",
+          "image": "food_pantry.png",
+          "coords": {
+            "x": 842,
+            "y": -1888
+          },
+          "actions": [
+            {
+              "label": "Перейти до Солдатської Кухні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_44"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_45"
+        },
+        {
+          "name": "ГОЛОВНА ДОРОГА",
+          "text": "Дорога від входу пролягає прямо до внутрішніх воріт. З обох боків вона оточена будівлями.",
+          "image": "main_road.png",
+          "coords": {
+            "x": 85,
+            "y": -2288
+          },
+          "actions": [
+            {
+              "label": "Перейти до Зовнішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_31"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Вартівні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_47"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Коридору Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_49"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Ржавих Дверей",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_53"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Внутрішніх Воріт",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_55"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_46"
+        },
+        {
+          "name": "ВАРТІВНЯ",
+          "text": "Одне з приміщень праворуч кишить вартовими. Далі не проскочиш. Хіба що злитися з ними…",
+          "image": "guardhouse.png",
+          "coords": {
+            "x": 398,
+            "y": -2278
+          },
+          "actions": [
+            {
+              "label": "Надягнути Форму Вартового",
+              "once": true,
+              "functions": [
+                {
+                  "type": "RemoveItemFunction",
+                  "item": "ITEM_16"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Одне з приміщень праворуч кишить вартовими. Але людей у формі вони сприймають за своїх."
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "pass_opened"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_16",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Кімнати Реєстрів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_48"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "pass_opened",
+                  "negate": false
+                }
+              ]
+            }
+          ],
+          "id": "NODE_47"
+        },
+        {
+          "name": "КІМНАТА РЕЄСТРІВ",
+          "text": "А у цій кімнатці, схоже, зберігаються реєстрові документи вартових. Один із них привертає увагу.",
+          "image": "registry_room.png",
+          "coords": {
+            "x": 634,
+            "y": -2290
+          },
+          "actions": [
+            {
+              "label": "Перейти до Вартівні",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_47"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Оглянути підозрілий документ",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Діма"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_48"
+        },
+        {
+          "name": "КОРИДОР ПОЛКОВНИКА",
+          "text": "Табличка біля входу повідомляє: цей коридор веде до кабінету полковника Цвібеля – одного з найвпливовіших підданих короля. Вузький, темний тунель із кабелями та механізмами протипоказаний людям з клаустрофобією.",
+          "image": "colonel_corridor.png",
+          "coords": {
+            "x": 365,
+            "y": -2517
+          },
+          "actions": [
+            {
+              "label": "Перейти до Дверей Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_50"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Головної Дороги",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_46"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_49"
         },
         {
           "name": "СТАРИЙ КОЛОДЯЗЬ",
@@ -1608,6 +2329,582 @@
           "id": "NODE_5"
         },
         {
+          "name": "ДВЕРІ ПОЛКОВНИКА",
+          "text": "Замкнено. Такі сталеві дверища не виламаєш грубою силою. Доведеться почаклувати.",
+          "image": "colonel_doors_closed.png",
+          "coords": {
+            "x": 637,
+            "y": -2518
+          },
+          "actions": [
+            {
+              "label": "Задача 7",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "7",
+                  "on_success": [
+                    {
+                      "type": "SetImageFunction",
+                      "target_node": null,
+                      "value": "colonel_doors_opened.png"
+                    },
+                    {
+                      "type": "SetTextFunction",
+                      "target_node": null,
+                      "variable": "text",
+                      "value": "Сталеві двері відчинено. Ласкаво просимо у кабінет!"
+                    },
+                    {
+                      "type": "SetNodeStateFunction",
+                      "target_node": null,
+                      "value": "door_opened"
+                    }
+                  ],
+                  "on_failure": [],
+                  "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Кабінету Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_51"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "door_opened",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Коридору Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_49"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_50"
+        },
+        {
+          "name": "КАБІНЕТ ПОЛКОВНИКА",
+          "text": "А кабінет у полковника Цвібеля нічогенький! Розкішні меблі, десятки орденів, ще й особистий портрет на стіні! У кутку стоїть сейф, а на столі лежать погони.",
+          "image": "colonels_office.png",
+          "coords": {
+            "x": 878,
+            "y": -2523
+          },
+          "actions": [
+            {
+              "label": "Взяти Погони Полковника",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "ITEM_17"
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "colonels_office.png"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "А кабінет у полковника Цвібеля нічогенький! Розкішні меблі, десятки орденів, ще й особистий портрет на стіні! У кутку стоїть сейф, а на столі колись лежали погони. До того, як тут побував Запорро. Ха!"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Сейфу Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_52"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Дверей Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_50"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_51"
+        },
+        {
+          "name": "СЕЙФ ПОЛКОВНИКА",
+          "text": "Сейф Цвібеля, виготовлений з товстого металу, виглядає непробивним. Такий буде непросто зламати. Але якщо полковник тримає його під рукою, певне, те, що всередині, того варте…",
+          "image": "colonels_safe.png",
+          "coords": {
+            "x": 1097,
+            "y": -2307
+          },
+          "actions": [
+            {
+              "label": "Перейти до Кабінету Полковника",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_51"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Задача 8",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "8",
+                  "on_success": [
+                    {
+                      "type": "SetTextFunction",
+                      "target_node": null,
+                      "variable": "text",
+                      "value": "Сейф Цвібеля, виготовлений з товстого металу, відчинено. Виявляється, не існує незламних сейфів. Тільки українці."
+                    },
+                    {
+                      "type": "SetImageFunction",
+                      "target_node": null,
+                      "value": "colonels_safe_opened.png"
+                    },
+                    {
+                      "type": "ShowMessageFunction",
+                      "message": "Сувій якихось імен. Потім знадобиться..."
+                    },
+                    {
+                      "type": "PickUpItemFunction",
+                      "item": "ITEM_22"
+                    }
+                  ],
+                  "on_failure": [],
+                  "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_52"
+        },
+        {
+          "name": "РЖАВІ ДВЕРІ",
+          "text": "Вхід у сарай зліва лежить за старими дверима. Від часу вони геть проржавіли. Замість класичного замку на них проріз, в який ніби треба щось вкинути…",
+          "image": "rusted_doors_closed.png",
+          "coords": {
+            "x": -169,
+            "y": -2497
+          },
+          "actions": [
+            {
+              "label": "Використати Ржавий Токен",
+              "once": true,
+              "functions": [
+                {
+                  "type": "RemoveItemFunction",
+                  "item": "ITEM_13"
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "rusted_doors_opened.png"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Вхід у сарай зліва лежить за старими дверима. Від часу вони геть проржавіли. Відчинені навстіж. Зсередини долинає їдкий сморід."
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "door_opened"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_13",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Закинутого Сараю",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_54"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "door_opened",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Головної Дороги",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_46"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_53"
+        },
+        {
+          "name": "ЗАКИНУТИЙ САРАЙ",
+          "text": "Господи! Як же смердить! Не дивно – приміщення старе, як світ. Дерев’яні балки аж прогнили. Підлога тяп-ляп вимощена сіном. І серед нього блищить щось…",
+          "image": "wooden_barn.png",
+          "coords": {
+            "x": -436,
+            "y": -2507
+          },
+          "actions": [
+            {
+              "label": "Підняти (F$#Ґ£Nu3ї?2 2/7",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "ITEM_32"
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "wooden_barn.png"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Господи! Як же смердить! Не дивно – приміщення старе, як світ. Дерев’яні балки аж прогнили. Підлога тяп-ляп вимощена сіном. "
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Ржавих Дверей",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_53"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_54"
+        },
+        {
+          "name": "ВНУТРІШНІ ВОРОТА",
+          "text": "Ворота, що ведуть на серверний міст, набагато краще укріплені, ніж попередні. Солдат на вході перевіряє особу кожного. Проскочити можливо лише замаскувавшись під якусь велику шишку…",
+          "image": "inner_gates.png",
+          "coords": {
+            "x": 86,
+            "y": -2654
+          },
+          "actions": [
+            {
+              "label": "Надягнути Погони Полковника",
+              "once": true,
+              "functions": [
+                {
+                  "type": "RemoveItemFunction",
+                  "item": "ITEM_17"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Ворота, що ведуть на серверний міст, набагато краще укріплені, ніж попередні. Солдат на вході перевіряє особу кожного. Вітає:\n\"Ласкаво просимо всередину, Полковнику Цвібель!\""
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "gate_opened"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_17",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Головної Дороги",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_46"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Внутрішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_56"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "gate_opened",
+                  "negate": false
+                }
+              ]
+            }
+          ],
+          "id": "NODE_55"
+        },
+        {
+          "name": "ВНУТРІШНІЙ ДВІР",
+          "text": "Ось він – внутрішній двір Серверного Замку. Це місце вже не яскраве та привітне, як Клієнтська Долина. Довкола купа техніки та проводів. Солдати пораються із різноманітними завданнями.",
+          "image": "inner_yard.png",
+          "coords": {
+            "x": 90,
+            "y": -2913
+          },
+          "actions": [
+            {
+              "label": "Перейти до Внутрішніх Воріт",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_55"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Основи Вежі",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_57"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Фойє Бібліотеки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_60"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_56"
+        },
+        {
+          "name": "ОСНОВА ВЕЖІ",
+          "text": "Стежка веде до сигнальної вежі. Знизу та видається просто височенною.",
+          "image": "base_of_tower.png",
+          "coords": {
+            "x": 357,
+            "y": -2903
+          },
+          "actions": [
+            {
+              "label": "Перейти до Внутрішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_56"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Дзвіниці",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_58"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Сигнальної Вежі",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_59"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_57"
+        },
+        {
+          "name": "ДЗВІНИЦЯ",
+          "text": "Мідний дзвін готовий сповістити все королівство у випадку небезпеки.",
+          "image": "bell_tower.png",
+          "coords": {
+            "x": 574,
+            "y": -2824
+          },
+          "actions": [
+            {
+              "label": "Перейти до Основи Вежі",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_57"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Сигнальної Вежі",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_59"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_58"
+        },
+        {
+          "name": "СИГНАЛЬНА ВЕЖА",
+          "text": "З висоти вежі Клієнтська долина, мов на долоні. На краю вежі стоїть підозрілий вартовий, що тримає у руках сурму, а на його шиї висить якась слухавка. Можливо, її можна відібрати?",
+          "image": "signal_tower.png",
+          "coords": {
+            "x": 558,
+            "y": -3016
+          },
+          "actions": [
+            {
+              "label": "Задача 10",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "10",
+                  "on_success": [
+                    {
+                      "type": "SetImageFunction",
+                      "target_node": null,
+                      "value": "signal_tower.png"
+                    },
+                    {
+                      "type": "SetTextFunction",
+                      "target_node": null,
+                      "variable": "text",
+                      "value": "З висоти вежі Клієнтська долина, мов на долоні. "
+                    },
+                    {
+                      "type": "PickUpItemFunction",
+                      "item": "ITEM_5"
+                    },
+                    {
+                      "type": "ShowMessageFunction",
+                      "message": "На предметі висить етикетка:\n\n«Слухавка відлуння (TM):\nСтарі логи збирайте,\nНічого не забувайте!»"
+                    }
+                  ],
+                  "on_failure": [],
+                  "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Основи Вежі",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_57"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Дзвіниці",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_58"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_59"
+        },
+        {
           "name": "ОГЛЯДОВИЙ ДАХ",
           "text": "Краєвид із цього даху відкривався би шикарний… Якби тільки сусідні новобудови не були вищими.",
           "image": "viewing_roof.png",
@@ -1629,6 +2926,592 @@
             }
           ],
           "id": "NODE_6"
+        },
+        {
+          "name": "ФОЙЄ БІБЛІОТЕКИ",
+          "text": "Тс-с. Тихіше. Це ж бібліотека!",
+          "image": "library_lobby.png",
+          "coords": {
+            "x": 85,
+            "y": -3101
+          },
+          "actions": [
+            {
+              "label": "Оглянути нотатки Бібліотекаря",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Дістали вже ці проходимці, що просять матеріали з таємної секції. Тисячу ж разів було повторено – лише зі спеціальними дозволами!"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Бібліотеки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_61"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Внутрішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_56"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_60"
+        },
+        {
+          "name": "БІБЛІОТЕКА",
+          "text": "Пишна колекція книжок займає сотні полиць. Більшість із них стоять на видному місці. Але це точно не все, що зберігається тут…",
+          "image": "library.png",
+          "coords": {
+            "x": 95,
+            "y": -3254
+          },
+          "actions": [
+            {
+              "label": "Задача 9",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "9",
+                  "on_success": [
+                    {
+                      "type": "SetTextFunction",
+                      "target_node": null,
+                      "variable": "text",
+                      "value": "Пишна колекція книжок займає сотні полиць."
+                    },
+                    {
+                      "type": "SetImageFunction",
+                      "target_node": null,
+                      "value": "library.png"
+                    },
+                    {
+                      "type": "PickUpItemFunction",
+                      "item": "ITEM_18"
+                    }
+                  ],
+                  "on_failure": [],
+                  "remove_on_success": true
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Фойє Бібліотеки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_60"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Читального Кутка",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_62"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Використати Ліхтар",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "stairway_opened"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_6",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Прихованих Сходів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_63"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "stairway_opened",
+                  "negate": false
+                }
+              ]
+            }
+          ],
+          "id": "NODE_61"
+        },
+        {
+          "name": "ЧИТАЛЬНИЙ КУТОК",
+          "text": "Тиха секція бібліотеки, призначена для читання.",
+          "image": "reading_corner.png",
+          "coords": {
+            "x": 78,
+            "y": -3437
+          },
+          "actions": [
+            {
+              "label": "Прослухати",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Діма"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_5",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Бібліотеки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_61"
+                }
+              ],
+              "conditions": []
+            }
+          ],
+          "id": "NODE_62"
+        },
+        {
+          "id": "NODE_63",
+          "name": "ПРИХОВАНІ СХОДИ",
+          "text": "За одним із книжкових стелажів приховані сходи. Повсюду павутиння, а зі стелі підтікає.",
+          "image": "hidden_stairs.png",
+          "coords": {
+            "x": 324,
+            "y": -3263
+          },
+          "actions": [
+            {
+              "label": "Перейти до Бібліотеки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_61"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Техкоридору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_64"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_64",
+          "name": "ТЕХКОРИДОР",
+          "text": "Цим сирим тунелем, очевидно, ходив технічний персонал замку. Аж знаходитись тут гидко.",
+          "image": "tech_coridor.png",
+          "coords": {
+            "x": 551,
+            "y": -3438
+          },
+          "actions": [
+            {
+              "label": "Перейти до Службової Ніші",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_65"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Прихованих Сходів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_63"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_65",
+          "name": "СЛУЖБОВА НІША",
+          "text": "Техкоридор закінчується тупиком. На підлозі – службове приладдя, а на стіні графіті.",
+          "image": "service_niche.png",
+          "coords": {
+            "x": 778,
+            "y": -3445
+          },
+          "actions": [
+            {
+              "label": "Оглянути Графіті",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Шо, злодюго, думав тут щось цінне? Фіг тобі. Це просто місце, де ми з Михаличем розпиваєм горілочку!"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Техкоридору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_64"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_67",
+          "name": "ДВІР КАРАВАНІВ",
+          "text": "На широкий майданчик одним за одним заходять верблюди зі скринями.",
+          "image": "caravan_yard.png",
+          "coords": {
+            "x": -275,
+            "y": -3099
+          },
+          "actions": [
+            {
+              "label": "Включити мозгі",
+              "once": true,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Заховавшись у кущах, можна тихенько відводити їх у сторону по одному та перевіряти джейсони."
+                },
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "activated"
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "single_camel_if_lasso.png"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_4",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перехопити верблюда",
+              "once": false,
+              "functions": [
+                {
+                  "type": "RandomFunction",
+                  "branches": [
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Канцелярії Його Величності\nДіма"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Служби Безпеки Його Величності\nВід: Сержант Фаєрволич\nЗнайшов ось цю штуку. Хтось із мешканців замку намагався вивезти це контрабандою. Закликаю вжити заходів та посили охорону."
+                        },
+                        {
+                          "type": "PickUpItemFunction",
+                          "item": "ITEM_6"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до hH$U£sd3F:\nВід: Anonymus\nГлока куздра штеко будланула бокра i курдячить бокреня."
+                        },
+                        {
+                          "type": "PickUpItemFunction",
+                          "item": "ITEM_33"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Аграрного Відомства Королівства\nВід: Ashot\nПрошу виділити мені 5 соток землі для вирощування кавунів у зв’язку з чинним дефіцитом."
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Служби Безпеки Його Величності\nВід: Сержант Авастенко\nПовідомляю про знайдену вразливість. Діма \n"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Королівської Бібліотеки\nВід: Andrii_Prokofiev_666\nПришліть будь-ласка примірник книги «Об’єктно-орієнтоване програмування» (Бублик В.В.) за адресою вул. Вафельна (десь у Бельгії) "
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "7)\tФормальний запит до Королівського Реєстру Громадян\nВід: qenze\nБудь-ласка, зареєструйте мене у реєстрі з роллю «косплеєр»."
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Королівського Казначейства\nВід: bogunok\nПрошу надати мені контакт завідуючого з криптоактивів для роз’яснення ситуації (конфіскації 50 USDT з мого гаманця)"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Королівського Суду\nВід: andrew_kviat\nПрошу стягнути з користувача bogunok 50 USDT на мою користь за порушення договору про оренду житла за адресою Майнкрафтерський Пагорб 7"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 1,
+                      "once": true,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Формальний запит до Бюро з Прав Громадян\nВід: rchukptr\nНарод, ну дайте вже відпустку, бубласка"
+                        }
+                      ]
+                    },
+                    {
+                      "weight": 20,
+                      "once": false,
+                      "functions": [
+                        {
+                          "type": "ShowMessageFunction",
+                          "message": "Бла-бла-бла\nЯкийсь рандомний запит, нічого цікавого, гортай далі"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "AllCondition",
+                  "conditions": [
+                    {
+                      "type": "HasItemCondition",
+                      "item": "ITEM_4",
+                      "negate": false
+                    },
+                    {
+                      "type": "NodeStateCondition",
+                      "target_node": null,
+                      "value": "activated",
+                      "negate": false
+                    }
+                  ],
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Внутрішнього Двору",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_56"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Дошки Маршрутів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_68"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Пункту Прийому",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_69"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Святилища Маніфестів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_70"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Стаєнь",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_71"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Контрольної Арки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_74"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_68",
+          "name": "ДОШКА МАРШРУТІВ",
+          "text": "На стенді зображено фрагмент мапи замку. Цікаво, що за копицями сіна ніби колись знаходився маршрут, однак наразі лінія стерта.",
+          "image": "route_road.png",
+          "coords": {
+            "x": -293,
+            "y": -2901
+          },
+          "actions": [
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_69",
+          "name": "ПУНКТ ПРИЙОМУ",
+          "text": "Біля пункту прийому караванів кожну тварину сканує якийсь вояка. Певне, вишуковують контрабанду.",
+          "image": "reception_point.png",
+          "coords": {
+            "x": -568,
+            "y": -2896
+          },
+          "actions": [
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            }
+          ]
         },
         {
           "name": "ТІНЬОВИЙ ПРОВУЛОК",
@@ -1674,6 +3557,224 @@
             }
           ],
           "id": "NODE_7"
+        },
+        {
+          "id": "NODE_70",
+          "name": "СВЯТИЛИЩЕ МАНІФЕСТІВ",
+          "text": "Невеличка капличка біля двору караванів. Замість ікон у ній портрети Залізного Короля, а замість священих текстів – його маніфести. Між тим, також у форматі JSON.",
+          "image": "manifests_chapel.png",
+          "coords": {
+            "x": -597,
+            "y": -3102
+          },
+          "actions": [
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_71",
+          "name": "СТАЙНІ",
+          "text": "У просторому сараї стоять верблюди. Відпочивають, перекусують сіном і колючками.",
+          "image": "stables.png",
+          "coords": {
+            "x": -529,
+            "y": -3297
+          },
+          "actions": [
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Копиць Сіна",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_72"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_72",
+          "name": "КОПИЦІ СІНА",
+          "text": "Запаси сіна у Королівстві нічогенькі. Копиці висотою аж під стелю!",
+          "image": "haystacks.png",
+          "coords": {
+            "x": -748,
+            "y": -3297
+          },
+          "actions": [
+            {
+              "label": "Використати Ліхтар",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SetNodeStateFunction",
+                  "target_node": null,
+                  "value": "door_opened"
+                },
+                {
+                  "type": "SetTextFunction",
+                  "target_node": null,
+                  "variable": "text",
+                  "value": "Запаси сіна у Королівстві нічогенькі. Копиці висотою аж під стелю! За однією з таких видніється вузенький лаз."
+                },
+                {
+                  "type": "SetImageFunction",
+                  "target_node": null,
+                  "value": "haystack_room_with_doorway.png"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "ITEM_6",
+                  "negate": false
+                }
+              ]
+            },
+            {
+              "label": "Перейти до Стаєнь",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_71"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Підсобки Стаєнь",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_73"
+                }
+              ],
+              "conditions": [
+                {
+                  "type": "NodeStateCondition",
+                  "target_node": null,
+                  "value": "door_opened",
+                  "negate": false
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "NODE_73",
+          "name": "ПІДСОБКА СТАЄНЬ",
+          "text": "Тісне приміщення дуже смердить. Тут лежить всілякий мотлох, а також кілька застарілих джейсонів. Нічого собі! Один із них було адресовано самому королю!",
+          "image": "wooden_barn.png",
+          "coords": {
+            "x": -984,
+            "y": -3308
+          },
+          "actions": [
+            {
+              "label": "Дослідити JSON",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowMessageFunction",
+                  "message": "Діма"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Копиць Сіна",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_72"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_74",
+          "name": "КОНТРОЛЬНА АРКА",
+          "text": "Дугоподібна структура виглядає урочисто, нависає над дорогою, що веде до самої замкової будівлі.",
+          "image": "control_arch.png",
+          "coords": {
+            "x": -282,
+            "y": -3434
+          },
+          "actions": [
+            {
+              "label": "Перейти до Двору Караванів",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_67"
+                }
+              ],
+              "conditions": []
+            },
+            {
+              "label": "Перейти до Брами Замку",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_75"
+                }
+              ],
+              "conditions": []
+            }
+          ]
+        },
+        {
+          "id": "NODE_75",
+          "name": "БРАМА ЗАМКУ",
+          "text": "А ось і вона. Брама замку Залізного Короля. Могутня і зовсім непривітна, вона дає зрозуміти - попереду найскладніші випробування.",
+          "image": "castle_gate.png",
+          "coords": {
+            "x": -270,
+            "y": -3673
+          },
+          "actions": [
+            {
+              "label": "Перейти до Контрольної Арки",
+              "once": false,
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "NODE_74"
+                }
+              ],
+              "conditions": []
+            }
+          ]
         },
         {
           "name": "КВАРТАЛ АРХІТЕКТОРІВ",
@@ -1884,36 +3985,144 @@
       "y": -1228
     },
     "NODE_31": {
-      "x": 67,
-      "y": -1453
+      "x": 77,
+      "y": -1447
     },
     "NODE_32": {
-      "x": -216,
-      "y": -1452
+      "x": -409,
+      "y": -1454
     },
     "NODE_33": {
-      "x": -472,
-      "y": -1457
+      "x": -687,
+      "y": -1459
     },
     "NODE_34": {
-      "x": -230,
-      "y": -1671
+      "x": -410,
+      "y": -1676
     },
     "NODE_35": {
-      "x": -472,
-      "y": -1670
+      "x": -684,
+      "y": -1678
+    },
+    "NODE_36": {
+      "x": -396,
+      "y": -1888
+    },
+    "NODE_37": {
+      "x": -686,
+      "y": -1895
+    },
+    "NODE_38": {
+      "x": -408,
+      "y": -2106
+    },
+    "NODE_39": {
+      "x": -157,
+      "y": -1887
     },
     "NODE_4": {
       "x": 283,
       "y": -126
     },
+    "NODE_40": {
+      "x": 342,
+      "y": -1642
+    },
+    "NODE_41": {
+      "x": 320,
+      "y": -1455
+    },
+    "NODE_42": {
+      "x": 591,
+      "y": -1645
+    },
+    "NODE_43": {
+      "x": 302,
+      "y": -1886
+    },
+    "NODE_44": {
+      "x": 576,
+      "y": -1883
+    },
+    "NODE_45": {
+      "x": 842,
+      "y": -1888
+    },
+    "NODE_46": {
+      "x": 85,
+      "y": -2288
+    },
+    "NODE_47": {
+      "x": 398,
+      "y": -2278
+    },
+    "NODE_48": {
+      "x": 634,
+      "y": -2290
+    },
+    "NODE_49": {
+      "x": 365,
+      "y": -2517
+    },
     "NODE_5": {
       "x": -152,
       "y": -348
     },
+    "NODE_50": {
+      "x": 637,
+      "y": -2518
+    },
+    "NODE_51": {
+      "x": 878,
+      "y": -2523
+    },
+    "NODE_52": {
+      "x": 1097,
+      "y": -2307
+    },
+    "NODE_53": {
+      "x": -169,
+      "y": -2497
+    },
+    "NODE_54": {
+      "x": -436,
+      "y": -2507
+    },
+    "NODE_55": {
+      "x": 86,
+      "y": -2654
+    },
+    "NODE_56": {
+      "x": 90,
+      "y": -2913
+    },
+    "NODE_57": {
+      "x": 357,
+      "y": -2903
+    },
+    "NODE_58": {
+      "x": 574,
+      "y": -2824
+    },
+    "NODE_59": {
+      "x": 558,
+      "y": -3016
+    },
     "NODE_6": {
       "x": -140,
       "y": -576
+    },
+    "NODE_60": {
+      "x": 85,
+      "y": -3101
+    },
+    "NODE_61": {
+      "x": 95,
+      "y": -3254
+    },
+    "NODE_62": {
+      "x": 78,
+      "y": -3437
     },
     "NODE_7": {
       "x": -434,
@@ -1930,6 +4139,54 @@
     "NODE_root": {
       "x": 85,
       "y": 198
+    },
+    "NODE_64": {
+      "x": 551,
+      "y": -3438
+    },
+    "NODE_65": {
+      "x": 778,
+      "y": -3445
+    },
+    "NODE_63": {
+      "x": 324,
+      "y": -3263
+    },
+    "NODE_67": {
+      "x": -275,
+      "y": -3099
+    },
+    "NODE_68": {
+      "x": -293,
+      "y": -2901
+    },
+    "NODE_69": {
+      "x": -568,
+      "y": -2896
+    },
+    "NODE_70": {
+      "x": -597,
+      "y": -3102
+    },
+    "NODE_71": {
+      "x": -529,
+      "y": -3297
+    },
+    "NODE_72": {
+      "x": -748,
+      "y": -3297
+    },
+    "NODE_73": {
+      "x": -984,
+      "y": -3308
+    },
+    "NODE_74": {
+      "x": -282,
+      "y": -3434
+    },
+    "NODE_75": {
+      "x": -270,
+      "y": -3673
     }
   },
   "_editor": {
