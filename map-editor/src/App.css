@@ -618,6 +618,18 @@ body.is-resizing-panel {
   gap: 5px;
 }
 
+.panel__section--error {
+  border: 1px solid rgba(255, 106, 106, 0.45);
+  background: rgba(255, 106, 106, 0.08);
+  border-radius: var(--radius-sm);
+  padding: 8px;
+}
+
+.panel__section--error .image-picker__select,
+.panel__section--error .image-picker__preview {
+  border-color: rgba(255, 106, 106, 0.5);
+}
+
 .panel__label {
   font-size: 11px;
   font-weight: 600;
@@ -1464,6 +1476,22 @@ body.is-resizing-panel {
   border-color: var(--accent);
   background: rgba(106, 169, 255, 0.06);
   box-shadow: 0 0 0 1px rgba(106, 169, 255, 0.15);
+}
+
+.item-row--error {
+  border-color: rgba(255, 106, 106, 0.55);
+  background: rgba(255, 106, 106, 0.12);
+}
+
+.item-row--error:hover {
+  border-color: rgba(255, 106, 106, 0.75);
+  background: rgba(255, 106, 106, 0.18);
+}
+
+.item-row--selected.item-row--error {
+  border-color: rgba(255, 106, 106, 0.8);
+  background: rgba(255, 106, 106, 0.2);
+  box-shadow: 0 0 0 1px rgba(255, 106, 106, 0.3);
 }
 
 .item-row__thumb {
