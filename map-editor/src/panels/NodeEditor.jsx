@@ -22,6 +22,7 @@ export default function NodeEditor() {
     const nodeIssues = validation.get(selectedNodeId) || [];
     const orphanIssue = nodeIssues.find(i => i.id === 'V-09');
     const prefixIssue = nodeIssues.find(i => i.id === 'V-07');
+    const imageIssue = nodeIssues.find(i => i.id === 'V-35');
 
     const isRoot = selectedNodeId === root;
 
@@ -176,12 +177,17 @@ export default function NodeEditor() {
                     />
                 </div>
 
-                <div className="panel__section">
+                <div className={`panel__section ${imageIssue ? 'panel__section--error' : ''}`}>
                     <label className="panel__label">Image</label>
                     <ImagePicker
                         value={node.image}
                         onChange={handleImageChange}
                     />
+                    {imageIssue && (
+                        <div className="panel__validation-msg panel__validation-msg--error">
+                            ⚠️ {imageIssue.message}
+                        </div>
+                    )}
                 </div>
 
                 {/* Actions */}

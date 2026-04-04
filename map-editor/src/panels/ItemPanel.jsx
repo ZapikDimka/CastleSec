@@ -1,4 +1,5 @@
 import { useMapState, useMapDispatch } from '../state/MapContext';
+import { useValidation } from '../validation/ValidationContext';
 import { getAssetUrl } from '../shared/assetHelper';
 import { useOptimizedImage } from '../shared/useOptimizedImage';
 import ItemEditor from './ItemEditor';
@@ -6,6 +7,7 @@ import ItemEditor from './ItemEditor';
 export default function ItemPanel() {
     const state = useMapState();
     const dispatch = useMapDispatch();
+    const validation = useValidation();
     const { items, selectedItemId, nodes } = state;
 
     const itemIds = Object.keys(items);
@@ -41,6 +43,7 @@ export default function ItemPanel() {
                             item={items[id]}
                             isSelected={id === selectedItemId}
                             refCount={refCounts[id]}
+                            hasMissingImage={Boolean((validation.get(id) || []).find(i => i.id === 'V-26'))}
                             onSelect={() => handleSelectItem(id)}
                         />
                     ))}
@@ -119,7 +122,7 @@ function countItemRefsInCondition(condition, counts) {
     }
 }
 
-function ItemRow({ id, item, isSelected, refCount, onSelect }) {
+function ItemRow({ id, item, isSelected, refCount, hasMissingImage, onSelect }) {
     const absoluteImagePath = getAssetUrl(item?.image);
     const optimizedImageSrc = useOptimizedImage(absoluteImagePath, 256, 256);
 
@@ -131,7 +134,7 @@ function ItemRow({ id, item, isSelected, refCount, onSelect }) {
 
     return (
         <div
-            className={`item-row ${isSelected ? 'item-row--selected' : ''}`}
+            className={`item-row ${isSelected ? 'item-row--selected' : ''} ${hasMissingImage ? 'item-row--error' : ''}`}
             onClick={onSelect}
         >
             {optimizedImageSrc && (

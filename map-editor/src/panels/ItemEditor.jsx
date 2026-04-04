@@ -18,6 +18,7 @@ export default function ItemEditor({ itemId }) {
 
     const itemIssues = validation.get(itemId) || [];
     const prefixIssue = itemIssues.find(i => i.id === 'V-08');
+    const imageIssue = itemIssues.find(i => i.id === 'V-26');
 
     // Count references to this item
     const refs = getItemReferences(state.nodes, itemId);
@@ -137,12 +138,17 @@ export default function ItemEditor({ itemId }) {
             </div>
 
             {/* Image */}
-            <div className="panel__section">
+            <div className={`panel__section ${imageIssue ? 'panel__section--error' : ''}`}>
                 <label className="panel__label">Image</label>
                 <ImagePicker
                     value={item.image}
                     onChange={handleImageChange}
                 />
+                {imageIssue && (
+                    <div className="panel__validation-msg panel__validation-msg--error">
+                        ⚠️ {imageIssue.message}
+                    </div>
+                )}
             </div>
 
             {/* Description */}
