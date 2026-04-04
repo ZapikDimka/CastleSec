@@ -28,12 +28,6 @@ async function doAction(index) {
             method: 'POST',
             headers: { 'accept': 'application/json' }
         });
-
-        if (response.status === 422) {
-            log("SYSTEM: Помилка валідації (невірний індекс).");
-            return;
-        }
-
         await updateState();
     } catch (err) {
         log("ERROR: Помилка при відправці дії.");
@@ -48,21 +42,18 @@ function renderGame(data) {
 
     const imgBox = document.getElementById("sceneImgBox");
     if (data.node.image) {
-        imgBox.innerHTML = `<img src="/game/assets/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
+        imgBox.innerHTML = `<img src="../map-editor/images/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
     }
 
     const btnRow = document.getElementById("navButtons");
     btnRow.innerHTML = "";
 
-    if (data.actions && data.actions.length > 0) {
+    if (data.actions) {
         data.actions.forEach((act, idx) => {
             const btn = document.createElement("button");
             btn.className = "primary";
             btn.innerText = act.text;
-            btn.onclick = () => {
-                log(`Виконую: ${act.text}`);
-                doAction(idx);
-            };
+            btn.onclick = () => { log(`Виконую: ${act.text}`); doAction(idx); };
             btnRow.appendChild(btn);
         });
     }
@@ -77,10 +68,7 @@ function renderGame(data) {
         items.forEach(item => {
             const itemEl = document.createElement("div");
             itemEl.className = "inv-item";
-            itemEl.innerHTML = `
-                <img src="/game/assets/item_icon_placeholder.png" alt="icon" style="max-height: 50px">
-                <div class="inv-name">${item.name}</div>
-            `;
+            itemEl.innerHTML = `<img src="/game/assets/item_icon_placeholder.png" alt="icon" style="max-height: 50px"><div class="inv-name">${item.name}</div>`;
             invBox.appendChild(itemEl);
         });
     }
@@ -89,7 +77,6 @@ function renderGame(data) {
 function toggleMap() {
     const overlay = document.getElementById("mapOverlay");
     overlay.classList.toggle("show");
-
     if (overlay.classList.contains("show")) {
         mapState = { zoom: 1, offsetX: 0, offsetY: 0, isDragging: false };
         buildMap();
@@ -102,8 +89,20 @@ function initMapControls() {
 
     container.onwheel = (e) => {
         e.preventDefault();
-        const delta = e.deltaY > 0 ? 0.9 : 1.1;
-        mapState.zoom = Math.min(Math.max(mapState.zoom * delta, 0.5), 3);
+
+        const zoomSpeed = 0.1;
+        const delta = e.deltaY > 0 ? -zoomSpeed : zoomSpeed;
+        const oldZoom = mapState.zoom;
+        const newZoom = Math.min(Math.max(oldZoom + delta, 0.2), 3);
+
+        const rect = container.getBoundingClientRect();
+        const mouseX = e.clientX - rect.left;
+        const mouseY = e.clientY - rect.top;
+
+        mapState.offsetX -= (mouseX - mapState.offsetX) * (newZoom / oldZoom - 1);
+        mapState.offsetY -= (mouseY - mapState.offsetY) * (newZoom / oldZoom - 1);
+        mapState.zoom = newZoom;
+
         applyMapTransform();
     };
 
@@ -137,20 +136,20 @@ function applyMapTransform() {
 
 async function buildMap() {
     const container = document.getElementById("mapContainer");
-    container.innerHTML = `<div id="mapContent" style="position: absolute; inset: 0; transform-origin: 0 0;"></div>`;
+    container.innerHTML = `<div id="mapContent" style="position: absolute; top:0; left:0; transform-origin: 0 0;"></div>`;
     const content = document.getElementById("mapContent");
 
     try {
         const response = await fetch(`${API_URL}/current-state`);
         const data = await response.json();
-        const gridScale = 250;
+        const gridScale = 2;
         const currentId = data.node.id;
 
         if (data.map_nodes) {
-            if (data.edges) {
-                const nodeLookup = new Map();
-                data.map_nodes.forEach(n => nodeLookup.set(n.id, n));
+            const nodeLookup = new Map();
+            data.map_nodes.forEach(n => nodeLookup.set(n.id, n));
 
+            if (data.edges) {
                 data.edges.forEach(edge => {
                     const n1 = nodeLookup.get(edge.from_id);
                     const n2 = nodeLookup.get(edge.to_id);
@@ -159,27 +158,20 @@ async function buildMap() {
             }
 
             let targetNode = null;
-
             data.map_nodes.forEach(node => {
                 const isCurrent = node.id === currentId;
-                const nodeEl = createNodeElement(node, content, gridScale, isCurrent);
+                createNodeElement(node, content, gridScale, isCurrent);
                 if (isCurrent) targetNode = node;
             });
 
-            if (targetNode) {
-                centerMapOnNode(targetNode, gridScale);
-            }
-
+            if (targetNode) centerMapOnNode(targetNode, gridScale);
             log("SYSTEM: Карта завантажена успішно.");
         }
-    } catch (err) {
-        log("ERROR: Не вдалося побудувати карту.");
-    }
+    } catch (err) { log("ERROR: Не вдалося побудувати карту."); }
 }
 
 function centerMapOnNode(node, scale) {
     const container = document.getElementById("mapContainer");
-
     const centerX = container.clientWidth / 2;
     const centerY = container.clientHeight / 2;
 
@@ -191,24 +183,19 @@ function centerMapOnNode(node, scale) {
 
 function createNodeElement(node, container, scale, isCurrent) {
     const nodeEl = document.createElement("div");
-    nodeEl.className = `map-node ${node.visited ? '' : 'unvisited'}`;
-    if (isCurrent) nodeEl.classList.add("current-node");
-
+    nodeEl.className = `map-node ${node.visited ? '' : 'unvisited'} ${isCurrent ? 'current-node' : ''}`;
     nodeEl.style.left = `${node.coords.x * scale}px`;
     nodeEl.style.top = `${node.coords.y * scale}px`;
 
     let nodeContent = `<div class="map-node-img-wrapper">`;
-
     if (node.visited) {
-        nodeContent += `<img src="/game/assets/${node.image}" class="map-node-img">`;
+        nodeContent += `<img src="../map-editor/images/${node.image}" class="map-node-img">`;
     } else {
         nodeContent += `<div class="lock-icon">🔒</div>`;
     }
     nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : '??'}</div>`;
     nodeEl.innerHTML = nodeContent;
-
     container.appendChild(nodeEl);
-    return nodeEl;
 }
 
 function createConnectionLine(node1, node2, content, scale) {
@@ -216,39 +203,27 @@ function createConnectionLine(node1, node2, content, scale) {
     const y1 = node1.coords.y * scale;
     const x2 = node2.coords.x * scale;
     const y2 = node2.coords.y * scale;
-
     const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
-
     const line = document.createElement("div");
     line.className = `map-connection ${(!node1.visited || !node2.visited) ? 'dimmed' : ''}`;
     line.style.width = `${length}px`;
     line.style.left = `${x1}px`;
     line.style.top = `${y1}px`;
     line.style.transform = `rotate(${angle}deg)`;
-
     content.appendChild(line);
 }
 
 function log(msg) {
     const logEl = document.getElementById("gameLog");
+    if (!logEl) return;
     const time = new Date().toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
     logEl.innerText += `[${time}] ${msg}\n`;
     logEl.scrollTop = logEl.scrollHeight;
 }
 
-function showConfirm() {
-    document.getElementById("confirmOverlay").classList.add("show");
-}
-
-function closeConfirm() {
-    document.getElementById("confirmOverlay").classList.remove("show");
-}
-
-function confirmReset() {
-    closeConfirm();
-    log("SYSTEM: Скидання стану до початкового...");
-    updateState();
-}
+function showConfirm() { document.getElementById("confirmOverlay").classList.add("show"); }
+function closeConfirm() { document.getElementById("confirmOverlay").classList.remove("show"); }
+function confirmReset() { closeConfirm(); log("SYSTEM: Скидання стану..."); updateState(); }
 
 window.onload = updateState;

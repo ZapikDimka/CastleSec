@@ -22,7 +22,7 @@
     {
       "id": "ITEM_13",
       "name": "Ржавий Токен",
-      "image": "meme.jpg",
+      "image": "ic_cross.svg",
       "description": "Такі часто відчиняють потаємні двері…"
     },
     {
@@ -181,7 +181,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "4",
+                  "task": "task4",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
@@ -278,7 +278,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "2",
+                  "task": "task2",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
@@ -696,7 +696,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "3",
+                  "task": "task3",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
@@ -1439,7 +1439,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "5",
+                  "task": "task5",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
@@ -1497,7 +1497,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "1",
+                  "task": "task1",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",

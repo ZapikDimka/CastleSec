@@ -16,7 +16,7 @@ from dto import game_to_dto, GameStateDto
 logging.getLogger("game").setLevel(logging.DEBUG)
 logging.basicConfig(level=logging.INFO)
 
-assets_path = "../game/assets"
+assets_path = "../map-editor/images/"
 
 class State:
     game: Game
@@ -27,7 +27,7 @@ class State:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    with open("../game/test_map.json", "r") as f:
+    with open("../map-editor/maps/main_map.json", "r") as f:
         raw_map_data = json.load(f)
     game = Game(raw_map_data, assets_path, "../tasks")
     app.state = State(game=game)
@@ -42,8 +42,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Разрешает все методы (GET, POST и т.д.)
-    allow_headers=["*"],  # Разрешает все заголовки
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 def get_state(request: Request) -> State:
