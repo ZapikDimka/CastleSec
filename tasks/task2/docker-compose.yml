@@ -1,9 +1,0 @@
-version: '3.8'
-
-services:
-  task2:
-    build: .
-    container_name: castle_task2_archivist
-    ports:
-      - "8080:80"
-    restart: unless-stopped

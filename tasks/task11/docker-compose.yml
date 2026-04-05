@@ -1,9 +1,0 @@
-services:
-  task11:
-    build: .
-    container_name: ctf_bash_cgi
-    ports:
-      - "8080:80"
-    restart: unless-stopped
-    environment:
-      - TZ=Europe/Kyiv

@@ -1,5 +1,7 @@
 const API_URL = "http://127.0.0.1:8000";
 
+console.log("CastleSec app.js build 2026-04-06-3");
+
 let mapState = {
     zoom: 1,
     offsetX: 0,
@@ -9,20 +11,65 @@ let mapState = {
     startY: 0
 };
 
+let taskLaunchInProgress = false;
+
+function assetUrl(name) {
+    return `${API_URL}/assets/${encodeURIComponent(name)}`;
+}
+
+async function fetchCurrentState() {
+    const url = `${API_URL}/current-state?_ts=${Date.now()}`;
+    const response = await fetch(url, {
+        method: "GET",
+        cache: "no-store",
+        headers: {
+            "accept": "application/json",
+            "cache-control": "no-cache"
+        }
+    });
+
+    if (!response.ok) {
+        throw new Error("Server unreachable");
+    }
+
+    return await response.json();
+}
+
+async function waitForTaskUrl(timeoutMs = 60000, delayMs = 700) {
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < timeoutMs) {
+        const data = await fetchCurrentState();
+
+        if (!data.is_solving_task) {
+            return data;
+        }
+
+        if (data.task_url) {
+            return data;
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+
+    throw new Error("Task startup timeout");
+}
+
 async function updateState() {
     try {
-        const response = await fetch(`${API_URL}/current-state`);
-        if (!response.ok) throw new Error("Server unreachable");
+        const data = await fetchCurrentState();
+        const overlay = document.getElementById("taskOverlay");
+        const overlayShown = overlay && overlay.classList.contains("show");
 
-        const data = await response.json();
-        if (data.is_solving_task && data.task_url) {
-            const overlay = document.getElementById("taskOverlay");
-
-            if (overlay && !overlay.classList.contains("show")) {
-                log(`SYSTEM: Модуль активовано: ${data.task_url}`);
-                openTask(data.task_url);
-            }
+        if (data.is_solving_task && data.task_url && !overlayShown) {
+            log(`SYSTEM: Модуль активовано: ${data.task_url}`);
+            openTask(data.task_url);
         }
+
+        if (!data.is_solving_task && overlayShown) {
+            hideTaskOverlay();
+        }
+
         renderGame(data);
     } catch (err) {
         log("ERROR: Не вдалося отримати стан з API.");
@@ -31,14 +78,77 @@ async function updateState() {
 }
 
 async function doAction(index) {
+    if (taskLaunchInProgress) {
+        return;
+    }
+
+    taskLaunchInProgress = true;
+
     try {
         const response = await fetch(`${API_URL}/perform-action/${index}`, {
-            method: 'POST',
-            headers: { 'accept': 'application/json' }
+            method: "POST",
+            cache: "no-store",
+            headers: { "accept": "application/json" }
         });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.detail || "Action failed");
+        }
+
+        const immediateState = await fetchCurrentState();
+
+        if (!immediateState.is_solving_task) {
+            renderGame(immediateState);
+            return;
+        }
+
+        if (immediateState.task_url) {
+            renderGame(immediateState);
+            const overlay = document.getElementById("taskOverlay");
+            if (overlay && !overlay.classList.contains("show")) {
+                log(`SYSTEM: Модуль активовано: ${immediateState.task_url}`);
+                openTask(immediateState.task_url);
+            }
+            return;
+        }
+
+        renderGame(immediateState);
+        log("SYSTEM: Очікування запуску модуля...");
+
+        const readyState = await waitForTaskUrl();
+
+        renderGame(readyState);
+
+        const overlay = document.getElementById("taskOverlay");
+        if (readyState.task_url && overlay && !overlay.classList.contains("show")) {
+            log(`SYSTEM: Модуль активовано: ${readyState.task_url}`);
+            openTask(readyState.task_url);
+        }
+    } catch (err) {
+        log(`ERROR: Помилка при відправці дії. ${err.message || ""}`.trim());
+    } finally {
+        taskLaunchInProgress = false;
+    }
+}
+
+async function solveCurrentTask() {
+    try {
+        const response = await fetch(`${API_URL}/task/solve-current`, {
+            method: "POST",
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.detail || "Solve request failed");
+        }
+
+        log("SYSTEM: Завдання позначене як вирішене.");
+        hideTaskOverlay();
         await updateState();
     } catch (err) {
-        log("ERROR: Помилка при відправці дії.");
+        log(`ERROR: Не вдалося завершити завдання. ${err.message || ""}`.trim());
     }
 }
 
@@ -50,7 +160,9 @@ function renderGame(data) {
 
     const imgBox = document.getElementById("sceneImgBox");
     if (data.node.image) {
-        imgBox.innerHTML = `<img src="../map-editor/images/${data.node.image}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
+        imgBox.innerHTML = `<img src="${assetUrl(data.node.image)}" alt="${data.node.name}" style="width:100%; height:100%; object-fit:cover;">`;
+    } else {
+        imgBox.innerHTML = `<div style="color:var(--muted)">No Image Signal</div>`;
     }
 
     const btnRow = document.getElementById("navButtons");
@@ -61,7 +173,10 @@ function renderGame(data) {
             const btn = document.createElement("button");
             btn.className = "primary";
             btn.innerText = act.text;
-            btn.onclick = () => { log(`Виконую: ${act.text}`); doAction(idx); };
+            btn.onclick = () => {
+                log(`Виконую: ${act.text}`);
+                doAction(idx);
+            };
             btnRow.appendChild(btn);
         });
     }
@@ -76,7 +191,13 @@ function renderGame(data) {
         items.forEach(item => {
             const itemEl = document.createElement("div");
             itemEl.className = "inv-item";
-            itemEl.innerHTML = `<img src="/game/assets/item_icon_placeholder.png" alt="icon" style="max-height: 50px"><div class="inv-name">${item.name}</div>`;
+
+            if (item.image) {
+                itemEl.innerHTML = `<img src="${assetUrl(item.image)}" alt="icon" style="max-height: 50px"><div class="inv-name">${item.name}</div>`;
+            } else {
+                itemEl.innerHTML = `<div class="inv-name">${item.name}</div>`;
+            }
+
             invBox.appendChild(itemEl);
         });
     }
@@ -90,13 +211,33 @@ function openTask(url) {
     overlay.classList.add("show");
 }
 
-function closeTask() {
+function hideTaskOverlay() {
     const overlay = document.getElementById("taskOverlay");
     const iframe = document.getElementById("taskIframe");
 
     overlay.classList.remove("show");
     iframe.src = "about:blank";
-    updateState();
+}
+
+async function closeTask() {
+    try {
+        const response = await fetch(`${API_URL}/task/close-current`, {
+            method: "POST",
+            cache: "no-store"
+        });
+
+        if (!response.ok) {
+            const payload = await response.json().catch(() => ({}));
+            throw new Error(payload.detail || "Close request failed");
+        }
+
+        log("SYSTEM: Завдання закрито користувачем.");
+    } catch (err) {
+        log(`ERROR: Не вдалося закрити завдання. ${err.message || ""}`.trim());
+    } finally {
+        hideTaskOverlay();
+        await updateState();
+    }
 }
 
 function toggleMap() {
@@ -136,7 +277,7 @@ function initMapControls() {
         mapState.isDragging = true;
         mapState.startX = e.clientX - mapState.offsetX;
         mapState.startY = e.clientY - mapState.offsetY;
-        container.style.cursor = 'grabbing';
+        container.style.cursor = "grabbing";
     };
 
     window.onmousemove = (e) => {
@@ -148,7 +289,7 @@ function initMapControls() {
 
     window.onmouseup = () => {
         mapState.isDragging = false;
-        container.style.cursor = 'default';
+        container.style.cursor = "default";
     };
 }
 
@@ -165,8 +306,7 @@ async function buildMap() {
     const content = document.getElementById("mapContent");
 
     try {
-        const response = await fetch(`${API_URL}/current-state`);
-        const data = await response.json();
+        const data = await fetchCurrentState();
         const gridScale = 2;
         const currentId = data.node.id;
 
@@ -192,7 +332,9 @@ async function buildMap() {
             if (targetNode) centerMapOnNode(targetNode, gridScale);
             log("SYSTEM: Карта завантажена успішно.");
         }
-    } catch (err) { log("ERROR: Не вдалося побудувати карту."); }
+    } catch (err) {
+        log("ERROR: Не вдалося побудувати карту.");
+    }
 }
 
 function centerMapOnNode(node, scale) {
@@ -208,17 +350,17 @@ function centerMapOnNode(node, scale) {
 
 function createNodeElement(node, container, scale, isCurrent) {
     const nodeEl = document.createElement("div");
-    nodeEl.className = `map-node ${node.visited ? '' : 'unvisited'} ${isCurrent ? 'current-node' : ''}`;
+    nodeEl.className = `map-node ${node.visited ? "" : "unvisited"} ${isCurrent ? "current-node" : ""}`;
     nodeEl.style.left = `${node.coords.x * scale}px`;
     nodeEl.style.top = `${node.coords.y * scale}px`;
 
     let nodeContent = `<div class="map-node-img-wrapper">`;
     if (node.visited) {
-        nodeContent += `<img src="../map-editor/images/${node.image}" class="map-node-img">`;
+        nodeContent += `<img src="${assetUrl(node.image)}" class="map-node-img">`;
     } else {
         nodeContent += `<div class="lock-icon">🔒</div>`;
     }
-    nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : '??'}</div>`;
+    nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : "??"}</div>`;
     nodeEl.innerHTML = nodeContent;
     container.appendChild(nodeEl);
 }
@@ -231,7 +373,7 @@ function createConnectionLine(node1, node2, content, scale) {
     const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
     const angle = Math.atan2(y2 - y1, x2 - x1) * 180 / Math.PI;
     const line = document.createElement("div");
-    line.className = `map-connection ${(!node1.visited || !node2.visited) ? 'dimmed' : ''}`;
+    line.className = `map-connection ${(!node1.visited || !node2.visited) ? "dimmed" : ""}`;
     line.style.width = `${length}px`;
     line.style.left = `${x1}px`;
     line.style.top = `${y1}px`;
@@ -242,7 +384,7 @@ function createConnectionLine(node1, node2, content, scale) {
 function log(msg) {
     const logEl = document.getElementById("gameLog");
     if (!logEl) return;
-    const time = new Date().toLocaleTimeString('uk-UA', {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+    const time = new Date().toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
     logEl.innerText += `[${time}] ${msg}\n`;
     logEl.scrollTop = logEl.scrollHeight;
 }
@@ -251,4 +393,15 @@ function showConfirm() { document.getElementById("confirmOverlay").classList.add
 function closeConfirm() { document.getElementById("confirmOverlay").classList.remove("show"); }
 function confirmReset() { closeConfirm(); log("SYSTEM: Скидання стану..."); updateState(); }
 
-window.onload = updateState;
+window.addEventListener("message", async (event) => {
+    const data = event.data || {};
+    if (data.source !== "castlesec-task") return;
+
+    if (data.type === "task-solved") {
+        await solveCurrentTask();
+    }
+});
+
+window.onload = async () => {
+    await updateState();
+};

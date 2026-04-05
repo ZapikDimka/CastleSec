@@ -1,6 +1,0 @@
-echo "👑 CastleSec / T12: 'Сліди Попередників' (Horizontal PrivEsc)"
-echo "Старт: www-data (дух). Мета: вселитися в keeper."
-echo "Підказка: шукай сліди в чужих файлах історії команд."
-echo ""
-
-export PS1="ghost@castle:\\w\\$ "
