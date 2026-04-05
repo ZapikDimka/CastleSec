@@ -1,6 +1,6 @@
 version: '3'
 services:
-  glass-house:
+  task4:
     build: ./app
     container_name: glass_house_challenge
     ports:

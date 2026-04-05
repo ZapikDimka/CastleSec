@@ -103,6 +103,15 @@
         </div>
     </div>
 </div>
-
+<div id="taskOverlay" class="overlay">
+    <div class="modal" style="width: 95vw; height: 90vh; max-width: none; display: flex; flex-direction: column;">
+        <div class="modalBody" style="flex-grow: 1; padding: 0; background: #000;">
+            <iframe id="taskIframe" src="about:blank" style="width: 100%; height: 100%; border: none;"></iframe>
+        </div>
+        <div class="modalBottom">
+            <button onclick="closeTask()">Закрити термінал</button>
+        </div>
+    </div>
+</div>
 </body>
 </html>

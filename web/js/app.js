@@ -15,6 +15,14 @@ async function updateState() {
         if (!response.ok) throw new Error("Server unreachable");
 
         const data = await response.json();
+        if (data.is_solving_task && data.task_url) {
+            const overlay = document.getElementById("taskOverlay");
+
+            if (overlay && !overlay.classList.contains("show")) {
+                log(`SYSTEM: Модуль активовано: ${data.task_url}`);
+                openTask(data.task_url);
+            }
+        }
         renderGame(data);
     } catch (err) {
         log("ERROR: Не вдалося отримати стан з API.");
@@ -72,6 +80,23 @@ function renderGame(data) {
             invBox.appendChild(itemEl);
         });
     }
+}
+
+function openTask(url) {
+    const overlay = document.getElementById("taskOverlay");
+    const iframe = document.getElementById("taskIframe");
+
+    iframe.src = url;
+    overlay.classList.add("show");
+}
+
+function closeTask() {
+    const overlay = document.getElementById("taskOverlay");
+    const iframe = document.getElementById("taskIframe");
+
+    overlay.classList.remove("show");
+    iframe.src = "about:blank";
+    updateState();
 }
 
 function toggleMap() {

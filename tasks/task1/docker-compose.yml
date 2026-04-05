@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  task1_inscription:
+  task1:
     build: .
     container_name: castle_task1_recon
     ports:

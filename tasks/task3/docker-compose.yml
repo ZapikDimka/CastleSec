@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  task3-xss:
+  task3:
     build: .
     container_name: task3_poisoned_apple
     ports:

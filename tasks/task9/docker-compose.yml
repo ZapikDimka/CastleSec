@@ -1,5 +1,5 @@
 services:
-  t9-library:
+  task9:
     build: .
     container_name: castlesec_t9_library
     ports:

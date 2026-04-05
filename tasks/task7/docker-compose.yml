@@ -15,7 +15,7 @@ services:
       timeout: 3s
       retries: 20
 
-  app:
+  task7:
     build: .
     depends_on:
       db:

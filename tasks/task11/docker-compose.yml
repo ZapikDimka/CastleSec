@@ -1,5 +1,5 @@
 services:
-  engineering-terminal:
+  task11:
     build: .
     container_name: ctf_bash_cgi
     ports:

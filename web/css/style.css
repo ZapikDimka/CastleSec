@@ -194,3 +194,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .close-btn:hover { color: var(--danger) !important; }
 
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+.overlay.show {
+    display: flex !important;
+}
