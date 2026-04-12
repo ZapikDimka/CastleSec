@@ -16,6 +16,8 @@ WORKDIR /app/backend
 COPY game/ /app/game/
 COPY backend/ /app/backend/
 COPY tasks/ /app/tasks/
+COPY map-editor/images/ /app/map-editor/images/
+COPY map-editor/maps/ /app/map-editor/maps/
 
 RUN uv sync --no-dev
 

@@ -3,6 +3,11 @@
 **/.idea
 **/*.pyc
 **/*.pyo
-**/README.md
 tasks/**/.venv
 tasks/**/__pycache__
+map-editor/src
+map-editor/tests
+map-editor/node_modules
+map-editor/*.js
+map-editor/*.json
+map-editor/*.html

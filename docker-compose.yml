@@ -1,4 +1,16 @@
 services:
+  web:
+    build:
+      context: .
+      dockerfile: web/Dockerfile
+    ports:
+      - "80:80"
+    environment:
+      - API_URL=http://localhost/api
+    depends_on:
+      backend:
+        condition: service_healthy
+
   backend:
     build:
       context: .
@@ -7,3 +19,8 @@ services:
       - "8000:8000"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/current-state"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
