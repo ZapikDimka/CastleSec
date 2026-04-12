@@ -157,6 +157,7 @@ class Game:
                             case "gte": result = var_num >= cond_num
                             case "lt":  result = var_num < cond_num
                             case "lte": result = var_num <= cond_num
+                            case "mod": result = var_num % cond_num == 0
                     except (ValueError, TypeError):
                         result = False
             case "AnyCondition":

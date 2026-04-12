@@ -129,7 +129,7 @@ class GameVariableCondition(BaseCondition):
     type: Literal["GameVariableCondition"] = "GameVariableCondition"
     key: str
     value: Optional[str] = None
-    operator: Literal["eq", "gt", "gte", "lt", "lte"] = "eq"
+    operator: Literal["eq", "gt", "gte", "lt", "lte", "mod"] = "eq"
 
 class AnyCondition(BaseCondition):
     type: Literal["AnyCondition"] = "AnyCondition"
