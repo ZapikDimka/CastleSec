@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  task1_inscription:
+    build: .
+    container_name: task1
+    ports:
+      - "8080:80"
+    networks:
+      - castle_network
+    restart: unless-stopped
+
+networks:
+  castle_network:
+    driver: bridge

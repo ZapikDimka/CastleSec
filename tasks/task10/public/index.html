@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="uk">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Task10 — Луна в Колодязі</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="wrap">
+      <header class="card">
+        <h1>Task10: «Луна в Колодязі»</h1>
+        <p class="muted">
+          Сигнальна вежа приймає «ping» і повертає відлуння. Кажуть, поле введення не ізольоване.
+        </p>
+        <details>
+          <summary>Підказка (концепт)</summary>
+          <p class="muted">
+            Якщо команда формується з вводу без ізоляції, інколи можна «приклеїти» другу команду через розділювач.
+            Тут це лише симуляція (без запуску ОС-команд).
+          </p>
+        </details>
+      </header>
+
+      <section class="grid">
+        <div class="card">
+          <h2>Сигнальна вежа</h2>
+          <p class="muted">Введи ціль для команди ping (наприклад: <code>127.0.0.1</code>)</p>
+
+          <div class="row">
+            <input id="target" class="input" placeholder="host або IP" autocomplete="off" />
+            <button id="btnPing" class="btn">Відправити</button>
+          </div>
+
+          <div class="muted small">Команда (як її бачить вежа): <code id="cmdShown">—</code></div>
+
+          <pre id="output" class="terminal">[output]</pre>
+        </div>
+
+        <div class="card">
+          <h2>Ввести пароль</h2>
+          <p class="muted">Отримай пароль з «відлуння системи» і введи його сюди.</p>
+
+          <div class="row">
+            <input id="password" class="input" placeholder="FLAG{...}" autocomplete="off" />
+            <button id="btnCheck" class="btn">Перевірити</button>
+          </div>
+
+          <div id="checkResult" class="result muted">—</div>
+        </div>
+      </section>
+
+    </main>
+
+    <script src="app.js" type="module"></script>
+  </body>
+</html>

@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Security Gate — SQLi Lab</title>
+    <link rel="stylesheet" href="/admin.css" />
+</head>
+
+<body class="solo">
+<div class="modal soloModal" role="dialog" aria-modal="true">
+    <div class="modalTop">
+        <div class="modalTitle">🔒 Security Gate: Admin Login</div>
+        <div class="muted modalSub">Введи логін/пароль. Live preview показує, як “складається” SQL.</div>
+    </div>
+
+    <div class="modalBody">
+        <div class="codeBox" id="sqlPreview">
+            SELECT id, username, role FROM users
+            WHERE username = '...' AND password = '...'
+            LIMIT 1
+        </div>
+
+        <div class="field">
+            <label for="u">Username</label>
+            <input id="u" autocomplete="off" placeholder="admin" />
+        </div>
+
+        <div class="field">
+            <label for="p">Password</label>
+            <input id="p" type="password" autocomplete="off" placeholder="••••••••" />
+        </div>
+    </div>
+
+    <div class="modalBottom">
+        <div class="status" id="status">Waiting…</div>
+        <button class="btn" id="clearBtn" type="button">Clear</button>
+        <button class="btn primary" id="loginBtn" type="button">Login</button>
+    </div>
+
+    <!-- Response appears here, in the same window -->
+    <div class="result" id="resultWrap" hidden>
+        <div class="resultHeader">
+            <div class="resultTitle">Server response</div>
+            <button class="btn tiny" id="copyBtn" type="button">Copy JSON</button>
+        </div>
+
+        <div class="block">
+            <div class="label">debug.sql</div>
+            <pre class="pre preSmall" id="backendSql">—</pre>
+        </div>
+
+        <div class="block">
+            <div class="label">JSON</div>
+            <pre class="pre preTall" id="resp">—</pre>
+        </div>
+
+        <div class="block" id="flagBlock" hidden>
+            <div class="label">Перевірка флага</div>
+
+            <div class="flagRow">
+                <input id="flagInput" class="flagInput" autocomplete="off" placeholder="FLAG{...}" />
+                <button class="btn tiny" id="flagBtn" type="button">Verify</button>
+            </div>
+
+            <div class="flagStatus" id="flagStatus">—</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const u = document.getElementById("u");
+    const p = document.getElementById("p");
+    const sqlPreview = document.getElementById("sqlPreview");
+    const statusEl = document.getElementById("status");
+
+    const loginBtn = document.getElementById("loginBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const resultWrap = document.getElementById("resultWrap");
+    const respEl = document.getElementById("resp");
+    const backendSqlEl = document.getElementById("backendSql");
+    const copyBtn = document.getElementById("copyBtn");
+
+    const flagBlock = document.getElementById("flagBlock");
+    const flagInput = document.getElementById("flagInput");
+    const flagBtn = document.getElementById("flagBtn");
+    const flagStatus = document.getElementById("flagStatus");
+
+    let lastJson = "";
+
+    function escapeHtml(text) {
+        return String(text)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    // Live UI preview (без “інструкцій”, лише візуалізація)
+    function updateSQLPreview(){
+        const uu = u.value;
+        const pp = p.value;
+
+        const safeP = escapeHtml(pp);
+        const safeU = escapeHtml(uu);
+
+        const before =
+            `SELECT id, username, role FROM users\n` +
+            `WHERE username = '`;
+
+        const afterUsername =
+            `'\n  AND password = '` + `<span class="hl-val">${safeP}</span>` + `'\n` +
+            `LIMIT 1`;
+
+        // If username contains "--", treat everything after it as a SQL line comment
+        const idx = uu.indexOf("--");
+        if (idx !== -1) {
+            const left = escapeHtml(uu.slice(0, idx));
+            const right = escapeHtml(uu.slice(idx + 2));
+
+            sqlPreview.innerHTML =
+                before +
+                `<span class="hl-val">${left}</span>` +
+                `<span class="comment">--${right}'</span>\n` +
+                `<span class="comment">  AND password = '${safeP}'\nLIMIT 1</span>`;
+            return;
+        }
+
+        sqlPreview.innerHTML =
+            before +
+            `<span class="hl-val">${safeU}</span>` +
+            afterUsername;
+    }
+
+    async function doLogin() {
+        statusEl.className = "status";
+        statusEl.textContent = "Sending…";
+
+        resultWrap.hidden = false;
+        respEl.textContent = "Loading…";
+        backendSqlEl.textContent = "Loading…";
+        flagBlock.hidden = true;
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "—";
+
+        try {
+            const r = await fetch("/api/login", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ username: u.value, password: p.value })
+            });
+
+            const data = await r.json();
+            lastJson = JSON.stringify(data, null, 2);
+
+            respEl.textContent = lastJson;
+            backendSqlEl.textContent = data.debug?.sql ?? "—";
+
+            if (data.ok) {
+                statusEl.className = "status success";
+                statusEl.textContent = "ACCESS GRANTED";
+                flagBlock.hidden = false;
+            } else {
+                statusEl.className = "status error";
+                statusEl.textContent = "ACCESS DENIED";
+                flagBlock.hidden = true;
+            }
+        } catch (e) {
+            statusEl.className = "status error";
+            statusEl.textContent = "Network / server error";
+            lastJson = String(e);
+            respEl.textContent = lastJson;
+            backendSqlEl.textContent = "—";
+            flagBlock.hidden = true;
+        }
+    }
+
+    async function verifyFlag() {
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "Checking…";
+
+        try {
+            const r = await fetch("/api/verify-flag", {
+                method: "POST",
+                headers: {"Content-Type":"application/json"},
+                body: JSON.stringify({ flag: flagInput.value })
+            });
+
+            const data = await r.json();
+
+            if (data.ok) {
+                flagStatus.className = "flagStatus ok";
+                flagStatus.textContent = "FLAG ACCEPTED";
+            } else {
+                flagStatus.className = "flagStatus bad";
+                flagStatus.textContent = "WRONG FLAG";
+            }
+        } catch (e) {
+            flagStatus.className = "flagStatus bad";
+            flagStatus.textContent = "Server error";
+        }
+    }
+
+    function clearAll() {
+        u.value = "";
+        p.value = "";
+        statusEl.className = "status";
+        statusEl.textContent = "Waiting…";
+        updateSQLPreview();
+
+        resultWrap.hidden = true;
+        respEl.textContent = "—";
+        backendSqlEl.textContent = "—";
+        lastJson = "";
+
+        flagBlock.hidden = true;
+        flagInput.value = "";
+        flagStatus.className = "flagStatus";
+        flagStatus.textContent = "—";
+
+        u.focus();
+    }
+
+    loginBtn.addEventListener("click", doLogin);
+    clearBtn.addEventListener("click", clearAll);
+    flagBtn.addEventListener("click", verifyFlag);
+
+    copyBtn.addEventListener("click", async () => {
+        try {
+            await navigator.clipboard.writeText(lastJson || "");
+            copyBtn.textContent = "Copied";
+            setTimeout(() => copyBtn.textContent = "Copy JSON", 800);
+        } catch {
+            copyBtn.textContent = "Copy failed";
+            setTimeout(() => copyBtn.textContent = "Copy JSON", 800);
+        }
+    });
+
+    u.addEventListener("input", updateSQLPreview);
+    p.addEventListener("input", updateSQLPreview);
+
+    window.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") doLogin();
+    });
+
+    updateSQLPreview();
+    u.focus();
+</script>
+</body>
+</html>

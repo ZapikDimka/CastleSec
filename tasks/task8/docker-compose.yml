@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: castle
+      POSTGRES_USER: castle
+      POSTGRES_PASSWORD: castle
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U castle -d castle"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  task8:
+    build: .
+    container_name: task8
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: "8080"
+      FLAG: "FLAG{FULL_N4ME_UN1ON_M4ST3R}"
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: castle
+      PGUSER: castle
+      PGPASSWORD: castle
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+
+volumes:
+  pgdata:

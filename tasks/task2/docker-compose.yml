@@ -1,0 +1,9 @@
+version: '3.8'
+
+services:
+  quest_02:
+    build: .
+    container_name: task2
+    ports:
+      - "8080:80"
+    restart: unless-stopped
