@@ -399,7 +399,7 @@ function createNodeElement(node, container, scale, isCurrent) {
     if (!node.visited) {
         nodeContent += `<div class="lock-icon">🔒</div>`;
     }
-    nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : "??"}</div>`;
+    nodeContent += `</div><div class="map-node-name">${node.name}</div>`;
 
     nodeEl.innerHTML = nodeContent;
     container.appendChild(nodeEl);
