@@ -1,18 +1,20 @@
 import logging
 import random
-from typing import Any
+from typing import Any, Optional
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from castle_sec_game.game.asset_loader import AssetLoader
 from castle_sec_game.game.types import *
-from castle_sec_game.game.context import Context
-from castle_sec_game.task.task import TaskRunner
+from castle_sec_game.task.task import TaskResult, TaskRunner
 
 
 class Game:
     def __init__(self, raw_json: dict, images_dir: str, tasks_dir: str):
         self.ctx = Context()
+        self._tasks_dir = tasks_dir
+        self._solved_tasks: set[str] = set()
+
         loader = AssetLoader(self.ctx)
         loader.load_all(images_dir=images_dir, tasks_dir=tasks_dir)
 
@@ -77,6 +79,22 @@ class Game:
             return None
         return self._task.get_url()
 
+    async def complete_current_task(self) -> bool:
+        if self._task is None:
+            return False
+
+        await self._task.mark_success()
+        self._step()
+        return True
+
+    async def close_current_task(self) -> bool:
+        if self._task is None:
+            return False
+
+        await self._task.terminate()
+        self._step()
+        return True
+
     def act(self, action_index: Optional[int] = None) -> Any:
         if action_index is None:
             self._step()
@@ -112,18 +130,25 @@ class Game:
                 return self._actions
 
             is_success = res.is_success()
-            funcs_to_run = (
-                self._task_callbacks.get("success", [])
-                if is_success
-                else self._task_callbacks.get("failure", [])
-            )
+            if is_success:
+                self._solved_tasks.add(self._task.name)
+
+            if res == TaskResult.TERMINATED:
+                funcs_to_run: list[BaseFunction] = []
+            else:
+                funcs_to_run = (
+                    self._task_callbacks.get("success", [])
+                    if is_success
+                    else self._task_callbacks.get("failure", [])
+                )
 
             self._task = None
             self._task_callbacks = {}
 
             if is_success and self._task_once_action is not None:
                 once_node, once_action = self._task_once_action
-                once_node.actions.remove(once_action)
+                if once_action in once_node.actions:
+                    once_node.actions.remove(once_action)
             self._task_once_action = None
 
             for func in funcs_to_run:
@@ -131,10 +156,26 @@ class Game:
 
         src = self.current_node.actions
         for action in src:
+            if self._action_targets_solved_task(action):
+                continue
             if self._evaluate_action_conditions(action):
                 self._actions.append(action)
 
         return self._actions
+
+    def _action_targets_solved_task(self, action: Action) -> bool:
+        return any(self._functions_target_solved_task(action.functions))
+
+    def _functions_target_solved_task(self, functions: list[FunctionType]):
+        for function in functions:
+            if function.type == "SolveTaskFunction":
+                yield function.task.root in self._solved_tasks
+            elif function.type == "ConditionalFunction":
+                yield from self._functions_target_solved_task(function.on_success)
+                yield from self._functions_target_solved_task(function.on_failure)
+            elif function.type == "RandomFunction":
+                for branch in function.branches:
+                    yield from self._functions_target_solved_task(branch.functions)
 
     def _check_condition(self, condition) -> bool:
         inventory_ids = {ref.ref_id for ref in self.state.inventory.items}
@@ -229,7 +270,12 @@ class Game:
                     )
 
             case "SolveTaskFunction":
-                self._task = TaskRunner(name=function.task.root)
+                task_name = function.task.root
+                if task_name in self._solved_tasks:
+                    self.state.message = f"Завдання '{task_name}' уже вирішене."
+                    return
+
+                self._task = TaskRunner(name=task_name, tasks_dir=self._tasks_dir)
                 self._task_callbacks = {
                     "success": function.on_success,
                     "failure": function.on_failure
@@ -262,7 +308,7 @@ class Game:
 
             case "RandomFunction":
                 if not function.branches:
-                    return 
+                    return
                 branch = random.choices(function.branches, weights=[b.weight for b in function.branches])[0]
                 if branch.once:
                     function.branches.remove(branch)

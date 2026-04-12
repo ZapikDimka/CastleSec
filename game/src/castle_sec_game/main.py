@@ -89,7 +89,6 @@ def display_node(game: Game):
         right.append(f"{BOLD}{YELLOW}║{RESET} {'(empty)'.center(i_width - 4)} {BOLD}{YELLOW}║{RESET}")
     else:
         for item in inventory:
-            # Wrap inventory items to prevent breaking the right panel
             for line in textwrap.wrap(interpolate(item.name, variables), i_width - 4):
                 item_line = line.center(i_width - 4)
                 right.append(f"{BOLD}{YELLOW}║{RESET} {item_line} {BOLD}{YELLOW}║{RESET}")
@@ -127,10 +126,10 @@ def clear_terminal():
 
 
 async def run_game():
-    with open("test_map.json", "r") as f:
+    with open("../map-editor/maps/main_map.json", "r") as f:
         raw_map_data = json.load(f)
 
-    game = Game(raw_map_data, "assets", "../tasks")
+    game = Game(raw_map_data, "../map-editor/images/", "../tasks")
 
     clear_terminal()
 

@@ -1,0 +1,115 @@
+{
+  "root": "MAP_ALPHA",
+  "items": [
+    { "id": "ITEM_LENS", "name": "Debugger Lens" },
+    { "id": "ITEM_TOKEN", "name": "Rusty Token" }
+  ],
+  "maps": [
+    {
+      "id": "MAP_ALPHA",
+      "root": "NODE_ENTRY",
+      "nodes": [
+        {
+          "id": "NODE_ENTRY",
+          "name": "Entry",
+          "text": "A board hangs on the wall.",
+          "actions": [
+            {
+              "label": "Inspect board",
+              "once": false,
+              "functions": [
+                {
+                  "type": "ShowHintTextFunction",
+                  "text": "Use the lens to reveal hidden writing.",
+                  "once": false
+                },
+                {
+                  "type": "InspectFunction",
+                  "title": "Read note",
+                  "content": "The old route starts near the well.",
+                  "once": false
+                }
+              ]
+            },
+            {
+              "label": "Use lens",
+              "once": true,
+              "functions": [
+                {
+                  "type": "IfFunction",
+                  "condition": {
+                    "type": "item_used",
+                    "item": "ITEM_LENS"
+                  },
+                  "then_functions": [
+                    {
+                      "type": "SetVariableFunction",
+                      "target_node": "NODE_ENTRY",
+                      "variable": "text",
+                      "value": "Hidden clue has been revealed."
+                    },
+                    {
+                      "type": "MoveFunction",
+                      "to": "NODE_WELL"
+                    }
+                  ],
+                  "else_functions": []
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "NODE_WELL",
+          "name": "Old Well",
+          "text": "A sealed hatch sits beside the well.",
+          "actions": [
+            {
+              "label": "Open hatch",
+              "once": false,
+              "functions": [
+                {
+                  "type": "IfFunction",
+                  "condition": {
+                    "type": "item_not_collected",
+                    "item": "ITEM_TOKEN"
+                  },
+                  "then_functions": [
+                    {
+                      "type": "SolveTaskFunction",
+                      "task": "TASK_HATCH_LOCK",
+                      "on_success": [
+                        { "type": "PickUpItemFunction", "item": "ITEM_TOKEN" },
+                        { "type": "MoveFunction", "to": "NODE_ARCHIVE" }
+                      ],
+                      "on_failure": [
+                        {
+                          "type": "ShowHintTextFunction",
+                          "text": "The lock does not budge.",
+                          "once": false
+                        }
+                      ]
+                    }
+                  ],
+                  "else_functions": [
+                    {
+                      "type": "ShowHintTextFunction",
+                      "text": "You already took the token.",
+                      "once": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "NODE_ARCHIVE",
+          "name": "Archive",
+          "text": "Dusty records are stacked to the ceiling.",
+          "actions": []
+        }
+      ]
+    }
+  ]
+}

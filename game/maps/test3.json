@@ -1,0 +1,51 @@
+{
+  "items": {},
+  "root": "NODE_root",
+  "nodes": {
+    "NODE_root": {
+      "name": "Entrance Hall",
+      "text": "Starting point of the map.",
+      "actions": [
+        {
+          "type": "move",
+          "to": "NODE_armory"
+        },
+        {
+          "type": "if",
+          "condition": {
+            "type": "has_item",
+            "item": "ITEM_key"
+          },
+          "action": {
+            "type": "move",
+            "to": "NODE_throne"
+          }
+        }
+      ]
+    },
+    "NODE_armory": {
+      "name": "Armory",
+      "text": "Weapons line the walls.",
+      "actions": [
+        {
+          "type": "move",
+          "to": "NODE_root"
+        },
+        {
+          "type": "move",
+          "to": "NODE_throne"
+        }
+      ]
+    },
+    "NODE_throne": {
+      "name": "Throne Room",
+      "text": "The king sits here.",
+      "actions": [
+        {
+          "type": "move",
+          "to": "NODE_throne"
+        }
+      ]
+    }
+  }
+}
