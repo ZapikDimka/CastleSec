@@ -3,6 +3,7 @@ version: '3.8'
 services:
   task2:
     build: .
+    image: castlesec-task2:latest
     ports:
       - "8080:80"
     restart: unless-stopped

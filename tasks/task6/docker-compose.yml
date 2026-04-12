@@ -3,6 +3,7 @@ version: '3.8'
 services:
   task6:
     build: ./app
+    image: castlesec-task6:latest
     ports:
       - "8080:8080"  # Змінено тут
     environment:

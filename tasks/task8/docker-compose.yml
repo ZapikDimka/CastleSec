@@ -17,6 +17,7 @@ services:
 
   task8:
     build: .
+    image: castlesec-task8:latest
     depends_on:
       db:
         condition: service_healthy

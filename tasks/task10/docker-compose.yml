@@ -1,6 +1,7 @@
 services:
   task10:
     build: .
+    image: castlesec-task10:latest
     ports:
       - "8080:8080"
     environment:

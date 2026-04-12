@@ -1,6 +1,7 @@
 services:
   task13:
     build: .
+    image: castlesec-task13:latest
     ports:
       - "8080:8080"
     restart: unless-stopped
