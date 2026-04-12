@@ -1,4 +1,5 @@
 import re
+from datetime import datetime
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -27,6 +28,11 @@ def build_context(game: "Game") -> dict[str, str]:
 
     if game.state.prev_node is not None:
         implicit.update(_node_string_fields(game.state.prev_node.resolve(ctx), "prev_node"))
+
+    now = datetime.now()
+    implicit["time.hour"] = f"{now.hour:02d}"
+    implicit["time.minute"] = f"{now.minute:02d}"
+    implicit["time.second"] = f"{now.second:02d}"
 
     implicit.update(game.state.variables)
     return implicit
