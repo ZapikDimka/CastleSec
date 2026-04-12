@@ -58,6 +58,7 @@ def get_game(state: Annotated[State, Depends(get_state)]) -> Game:
 
 @app.get("/current-state", response_model=GameStateDto)
 async def get_current_state(game: Annotated[Game, Depends(get_game)]) -> GameStateDto:
+    game.tick()
     return game_to_dto(game)
 
 

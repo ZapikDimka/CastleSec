@@ -79,6 +79,10 @@ class Game:
             return None
         return self._task.get_url()
 
+    def tick(self):
+        if self._task is not None and self._task.get_result() is not None:
+            self._step()
+
     async def complete_current_task(self) -> bool:
         if self._task is None:
             return False
