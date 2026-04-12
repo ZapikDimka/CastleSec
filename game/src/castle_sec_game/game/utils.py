@@ -30,9 +30,9 @@ def build_context(game: "Game") -> dict[str, str]:
         implicit.update(_node_string_fields(game.state.prev_node.resolve(ctx), "prev_node"))
 
     now = datetime.now()
-    implicit["time.hour"] = f"{now.hour:02d}"
-    implicit["time.minute"] = f"{now.minute:02d}"
-    implicit["time.second"] = f"{now.second:02d}"
+    implicit["time.hour"] = str(now.hour)
+    implicit["time.minute"] = str(now.minute)
+    implicit["time.second"] = str(now.second)
 
     implicit.update(game.state.variables)
     return implicit
