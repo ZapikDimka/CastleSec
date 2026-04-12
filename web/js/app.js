@@ -100,11 +100,13 @@ async function doAction(index) {
 
         if (!immediateState.is_solving_task) {
             renderGame(immediateState);
+            await buildMap();
             return;
         }
 
         if (immediateState.task_url) {
             renderGame(immediateState);
+            await buildMap();
             const overlay = document.getElementById("taskOverlay");
             if (overlay && !overlay.classList.contains("show")) {
                 log(`SYSTEM: Модуль активовано: ${immediateState.task_url}`);
@@ -119,6 +121,7 @@ async function doAction(index) {
         const readyState = await waitForTaskUrl();
 
         renderGame(readyState);
+        await buildMap();
 
         const overlay = document.getElementById("taskOverlay");
         if (readyState.task_url && overlay && !overlay.classList.contains("show")) {
@@ -240,44 +243,23 @@ async function closeTask() {
     }
 }
 
-function toggleMap() {
-    const overlay = document.getElementById("mapOverlay");
-    overlay.classList.toggle("show");
-    if (overlay.classList.contains("show")) {
-        mapState = { zoom: 1, offsetX: 0, offsetY: 0, isDragging: false };
-        buildMap();
-        initMapControls();
-    }
-}
-
 function initMapControls() {
     const container = document.getElementById("mapContainer");
 
     container.onwheel = (e) => {
         e.preventDefault();
-
-        const zoomSpeed = 0.1;
-        const delta = e.deltaY > 0 ? -zoomSpeed : zoomSpeed;
-        const oldZoom = mapState.zoom;
-        const newZoom = Math.min(Math.max(oldZoom + delta, 0.2), 3);
-
-        const rect = container.getBoundingClientRect();
-        const mouseX = e.clientX - rect.left;
-        const mouseY = e.clientY - rect.top;
-
-        mapState.offsetX -= (mouseX - mapState.offsetX) * (newZoom / oldZoom - 1);
-        mapState.offsetY -= (mouseY - mapState.offsetY) * (newZoom / oldZoom - 1);
-        mapState.zoom = newZoom;
-
-        applyMapTransform();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        changeZoom(delta, e.clientX, e.clientY);
     };
 
     container.onmousedown = (e) => {
-        if (e.button !== 0) return;
+        if (e.button !== 0 || e.target.tagName === 'BUTTON') return;
         mapState.isDragging = true;
         mapState.startX = e.clientX - mapState.offsetX;
         mapState.startY = e.clientY - mapState.offsetY;
         container.style.cursor = "grabbing";
+
+        if (mapState.animationFrame) cancelAnimationFrame(mapState.animationFrame);
     };
 
     window.onmousemove = (e) => {
@@ -293,6 +275,60 @@ function initMapControls() {
     };
 }
 
+function changeZoom(delta, clientX = null, clientY = null) {
+    const oldZoom = mapState.zoom;
+    const newZoom = Math.min(Math.max(oldZoom + delta, 0.2), 3);
+
+    const container = document.getElementById("mapContainer");
+    const rect = container.getBoundingClientRect();
+
+    const x = clientX !== null ? clientX - rect.left : container.clientWidth / 2;
+    const y = clientY !== null ? clientY - rect.top : container.clientHeight / 2;
+
+    mapState.offsetX -= (x - mapState.offsetX) * (newZoom / oldZoom - 1);
+    mapState.offsetY -= (y - mapState.offsetY) * (newZoom / oldZoom - 1);
+    mapState.zoom = newZoom;
+
+    applyMapTransform();
+}
+
+function centerMapOnNode(node, scale) {
+    const container = document.getElementById("mapContainer");
+    const centerX = container.clientWidth / 2;
+    const centerY = container.clientHeight / 2;
+
+    const targetX = centerX - (node.coords.x * scale * mapState.zoom);
+    const targetY = centerY - (node.coords.y * scale * mapState.zoom);
+
+    animateMapTo(targetX, targetY);
+}
+
+function animateMapTo(targetX, targetY) {
+    const duration = 400;
+    const startX = mapState.offsetX;
+    const startY = mapState.offsetY;
+    const startTime = performance.now();
+
+    if (mapState.animationFrame) cancelAnimationFrame(mapState.animationFrame);
+
+    function step(now) {
+        if (mapState.isDragging) return;
+
+        const progress = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - progress, 3);
+
+        mapState.offsetX = startX + (targetX - startX) * ease;
+        mapState.offsetY = startY + (targetY - startY) * ease;
+
+        applyMapTransform();
+
+        if (progress < 1) {
+            mapState.animationFrame = requestAnimationFrame(step);
+        }
+    }
+    mapState.animationFrame = requestAnimationFrame(step);
+}
+
 function applyMapTransform() {
     const content = document.getElementById("mapContent");
     if (content) {
@@ -302,13 +338,26 @@ function applyMapTransform() {
 
 async function buildMap() {
     const container = document.getElementById("mapContainer");
-    container.innerHTML = `<div id="mapContent" style="position: absolute; top:0; left:0; transform-origin: 0 0;"></div>`;
-    const content = document.getElementById("mapContent");
+
+    let content = document.getElementById("mapContent");
+    if (!content) {
+        content = document.createElement("div");
+        content.id = "mapContent";
+        content.style.position = "absolute";
+        content.style.top = "0";
+        content.style.left = "0";
+        content.style.transformOrigin = "0 0";
+        container.appendChild(content);
+
+        initMapControls();
+    }
 
     try {
         const data = await fetchCurrentState();
         const gridScale = 2;
         const currentId = data.node.id;
+
+        content.innerHTML = "";
 
         if (data.map_nodes) {
             const nodeLookup = new Map();
@@ -329,23 +378,13 @@ async function buildMap() {
                 if (isCurrent) targetNode = node;
             });
 
-            if (targetNode) centerMapOnNode(targetNode, gridScale);
-            log("SYSTEM: Карта завантажена успішно.");
+            if (targetNode) {
+                centerMapOnNode(targetNode, gridScale);
+            }
         }
     } catch (err) {
-        log("ERROR: Не вдалося побудувати карту.");
+        log("ERROR: Не вдалося оновити об'єкти на карті.");
     }
-}
-
-function centerMapOnNode(node, scale) {
-    const container = document.getElementById("mapContainer");
-    const centerX = container.clientWidth / 2;
-    const centerY = container.clientHeight / 2;
-
-    mapState.offsetX = centerX - (node.coords.x * scale * mapState.zoom);
-    mapState.offsetY = centerY - (node.coords.y * scale * mapState.zoom);
-
-    applyMapTransform();
 }
 
 function createNodeElement(node, container, scale, isCurrent) {
