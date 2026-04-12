@@ -1069,6 +1069,41 @@ body.is-resizing-panel {
   margin-bottom: 8px;
 }
 
+.action-editor__input-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.action-editor__input-row .panel__input {
+  flex: 1;
+}
+
+.action-editor__template-key-picker {
+  appearance: none;
+  flex-shrink: 0;
+  max-width: 130px;
+  min-height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: rgba(106, 169, 255, 0.08);
+  color: var(--accent);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0 8px;
+  cursor: pointer;
+}
+
+.action-editor__template-key-picker:hover {
+  background: rgba(106, 169, 255, 0.14);
+}
+
+.action-editor__template-key-picker:focus {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .action-editor__label {
   display: block;
   font-size: 11px;
