@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  task3-xss:
+  task3:
     build: .
-    container_name: task3
     ports:
       - "8080:8080"
     environment:

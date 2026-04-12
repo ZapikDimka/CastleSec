@@ -1,8 +1,7 @@
 version: '3'
 services:
-  glass-house:
+  task4:
     build: ./app
-    container_name: task4
     ports:
       - "8080:8080"
     environment:

@@ -1,7 +1,6 @@
 services:
-  t9-library:
+  task9:
     build: .
-    container_name: task9
     ports:
       - "8080:8080"
     environment:

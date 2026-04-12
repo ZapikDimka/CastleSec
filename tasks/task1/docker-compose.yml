@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  task1_inscription:
+  task1:
     build: .
-    container_name: task1
     ports:
       - "8080:80"
     networks:

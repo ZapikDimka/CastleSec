@@ -1,7 +1,6 @@
 services:
   task13:
     build: .
-    container_name: task13
     ports:
       - "8080:8080"
     restart: unless-stopped

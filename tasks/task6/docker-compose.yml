@@ -1,9 +1,8 @@
 version: '3.8'
 
 services:
-  ctf-guard:
+  task6:
     build: ./app
-    container_name: task6
     ports:
       - "8080:8080"  # Змінено тут
     environment:
