@@ -394,12 +394,13 @@ function createNodeElement(node, container, scale, isCurrent) {
     nodeEl.style.top = `${node.coords.y * scale}px`;
 
     let nodeContent = `<div class="map-node-img-wrapper">`;
-    if (node.visited) {
-        nodeContent += `<img src="${assetUrl(node.image)}" class="map-node-img">`;
-    } else {
+    nodeContent += `<img src="${assetUrl(node.image)}" class="map-node-img">`;
+
+    if (!node.visited) {
         nodeContent += `<div class="lock-icon">🔒</div>`;
     }
     nodeContent += `</div><div class="map-node-name">${node.visited ? node.name : "??"}</div>`;
+
     nodeEl.innerHTML = nodeContent;
     container.appendChild(nodeEl);
 }
