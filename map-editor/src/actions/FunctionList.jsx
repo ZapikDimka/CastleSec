@@ -28,6 +28,8 @@ const CONDITION_TYPE_OPTIONS = [
     { type: 'AnyCondition', label: 'Any (OR)' },
     { type: 'AllCondition', label: 'All (AND)' },
 ];
+const GAME_VARIABLE_OPERATORS = ['eq', 'gt', 'gte', 'lt', 'lte', 'mod'];
+const TEMPLATE_VARIABLE_KEYS = ['time.hour', 'time.minute', 'time.second'];
 
 export const KNOWN_FUNCTION_TYPES = new Set(FUNCTION_TYPE_OPTIONS.map((f) => f.type));
 export const KNOWN_CONDITION_TYPES = new Set(CONDITION_TYPE_OPTIONS.map((c) => c.type));
@@ -113,7 +115,7 @@ function normalizeCondition(condition) {
         };
     }
     if (type === 'GameVariableCondition') {
-        const validOperator = ['eq', 'gt', 'gte', 'lt', 'lte'].includes(condition.operator) ? condition.operator : 'eq';
+        const validOperator = GAME_VARIABLE_OPERATORS.includes(condition.operator) ? condition.operator : 'eq';
         return {
             ...condition,
             type,
@@ -256,7 +258,7 @@ export function validateCondition(condition, refs = {}) {
 
     if (condition.type === 'GameVariableCondition') {
         if (!condition.key?.trim()) return 'GameVariableCondition.key is required.';
-        const validOperator = ['eq', 'gt', 'gte', 'lt', 'lte'];
+        const validOperator = GAME_VARIABLE_OPERATORS;
         if (!validOperator.includes(condition.operator)) return 'GameVariableCondition.operator is invalid.';
     }
 
@@ -483,6 +485,25 @@ function OptionalNodeTargetEditor({ value, onChange }) {
     );
 }
 
+function TemplateVariableKeyPicker({ onSelect }) {
+    return (
+        <select
+            className="action-editor__template-key-picker"
+            value=""
+            onChange={(e) => {
+                const key = e.target.value;
+                if (key) onSelect(key);
+            }}
+            aria-label="Insert template variable key"
+        >
+            <option value="">Template Keys ▾</option>
+            {TEMPLATE_VARIABLE_KEYS.map((key) => (
+                <option key={key} value={key}>{key}</option>
+            ))}
+        </select>
+    );
+}
+
 function ConditionEditor({ condition, onChange }) {
     const normalized = normalizeCondition(condition);
 
@@ -543,13 +564,16 @@ function ConditionEditor({ condition, onChange }) {
                 <>
                     <div className="action-editor__field">
                         <label className="action-editor__label">Variable Key</label>
-                        <input
-                            className="panel__input"
-                            type="text"
-                            value={normalized.key || ''}
-                            onChange={(e) => update({ key: e.target.value })}
-                            spellCheck={false}
-                        />
+                        <div className="action-editor__input-row">
+                            <input
+                                className="panel__input"
+                                type="text"
+                                value={normalized.key || ''}
+                                onChange={(e) => update({ key: e.target.value })}
+                                spellCheck={false}
+                            />
+                            <TemplateVariableKeyPicker onSelect={(key) => update({ key })} />
+                        </div>
                     </div>
                     <div className="action-editor__field">
                         <label className="action-editor__label">Operator</label>
@@ -558,11 +582,9 @@ function ConditionEditor({ condition, onChange }) {
                             value={normalized.operator || 'eq'}
                             onChange={(e) => update({ operator: e.target.value })}
                         >
-                            <option value="eq">eq</option>
-                            <option value="gt">gt</option>
-                            <option value="gte">gte</option>
-                            <option value="lt">lt</option>
-                            <option value="lte">lte</option>
+                            {GAME_VARIABLE_OPERATORS.map((operator) => (
+                                <option key={operator} value={operator}>{operator}</option>
+                            ))}
                         </select>
                     </div>
                     <div className="action-editor__field">
@@ -875,13 +897,16 @@ function SetGameVariableFunctionEditor({ fn, onChange }) {
         <>
             <div className="action-editor__field">
                 <label className="action-editor__label">Variable Key</label>
-                <input
-                    className="panel__input"
-                    type="text"
-                    value={normalized.key || ''}
-                    onChange={(e) => onChange({ ...normalized, key: e.target.value })}
-                    spellCheck={false}
-                />
+                <div className="action-editor__input-row">
+                    <input
+                        className="panel__input"
+                        type="text"
+                        value={normalized.key || ''}
+                        onChange={(e) => onChange({ ...normalized, key: e.target.value })}
+                        spellCheck={false}
+                    />
+                    <TemplateVariableKeyPicker onSelect={(key) => onChange({ ...normalized, key })} />
+                </div>
             </div>
             <div className="action-editor__field">
                 <label className="action-editor__label">Value (empty clears)</label>
@@ -903,13 +928,16 @@ function IncrementGameVariableFunctionEditor({ fn, onChange }) {
         <>
             <div className="action-editor__field">
                 <label className="action-editor__label">Variable Key</label>
-                <input
-                    className="panel__input"
-                    type="text"
-                    value={normalized.key || ''}
-                    onChange={(e) => onChange({ ...normalized, key: e.target.value })}
-                    spellCheck={false}
-                />
+                <div className="action-editor__input-row">
+                    <input
+                        className="panel__input"
+                        type="text"
+                        value={normalized.key || ''}
+                        onChange={(e) => onChange({ ...normalized, key: e.target.value })}
+                        spellCheck={false}
+                    />
+                    <TemplateVariableKeyPicker onSelect={(key) => onChange({ ...normalized, key })} />
+                </div>
             </div>
             <div className="action-editor__field">
                 <label className="action-editor__label">Amount</label>

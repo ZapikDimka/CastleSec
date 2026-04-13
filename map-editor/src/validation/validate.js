@@ -1,4 +1,4 @@
-const CONDITION_OPS = new Set(['eq', 'gt', 'gte', 'lt', 'lte']);
+const CONDITION_OPS = new Set(['eq', 'gt', 'gte', 'lt', 'lte', 'mod']);
 const KNOWN_FUNCTION_TYPES = new Set([
     'MoveFunction',
     'PickUpItemFunction',
