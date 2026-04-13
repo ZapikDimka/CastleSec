@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import re
 import subprocess
 import time
@@ -31,6 +32,7 @@ class TaskRunner:
     _run_task: asyncio.Task[TaskResult] | None = None
     _completion_future: asyncio.Future[TaskResult] | None = None
     _url: str | None = None
+    _probe_url: str | None = None
     _is_ready: bool = False
 
     def __init__(self, name: str, tasks_dir: str | Path, timeout: float = 15 * 60):
@@ -63,7 +65,10 @@ class TaskRunner:
 
         compose_path = self._find_compose_file()
         if compose_path is not None:
-            self._url = self._read_host_port(compose_path)
+            public_host = os.environ.get("TASK_PUBLIC_HOST", "127.0.0.1")
+            self._url = self._read_host_port(compose_path, public_host)
+            probe_host = os.environ.get("TASK_HOST", public_host)
+            self._probe_url = self._read_host_port(compose_path, probe_host)
 
         self._run_task = asyncio.create_task(self._run_impl())
 
@@ -180,11 +185,11 @@ class TaskRunner:
         return False
 
     def _probe_http_ready(self) -> bool:
-        if self._url is None:
+        if self._probe_url is None:
             return False
 
         req = urllib_request.Request(
-            self._url,
+            self._probe_url,
             headers={"User-Agent": "CastleSecTaskRunner/1.0"},
             method="GET",
         )
@@ -204,7 +209,7 @@ class TaskRunner:
                 return candidate
         return None
 
-    def _read_host_port(self, compose_path: Path) -> str | None:
+    def _read_host_port(self, compose_path: Path, host: str = "127.0.0.1") -> str | None:
         try:
             lines = compose_path.read_text(encoding="utf-8").splitlines()
         except OSError:
@@ -277,8 +282,8 @@ class TaskRunner:
                     if len(parts) >= 2:
                         for candidate in reversed(parts[:-1]):
                             if candidate.isdigit():
-                                logger.info(f"[{self}] Task URL: http://127.0.0.1:{candidate}")
-                                return f"http://127.0.0.1:{candidate}"
+                                logger.info(f"[{self}] Task URL: http://{host}:{candidate}")
+                                return f"http://{host}:{candidate}"
 
         logger.info(f"[{self}] No port mapping found for service '{self._name}'")
         return None
