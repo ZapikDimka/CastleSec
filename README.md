@@ -53,6 +53,44 @@ Pre-builds all task Docker images so challenges launch instantly during gameplay
 
 Run this once after cloning or after modifying any task. Without it, the first time each task is started it will build on demand (takes longer).
 
+## Map editor
+
+The map editor is a visual node-based tool for creating and editing game maps, defining rooms and items, and wiring up interactions and routing.
+
+**Requirements:** [Node.js](https://nodejs.org/) v16+
+
+**1. Install dependencies** (first time only)
+
+```bash
+cd map-editor
+npm install
+```
+
+**2. Start the editor**
+
+```bash
+cd map-editor
+npm run dev
+```
+
+Then open **http://localhost:5173** in your browser.
+
+**Saving maps:** Save map files into `map-editor/maps/` so the backend can find them. \
+**Images:** Place image assets in `map-editor/images/`. The editor reads from that directory and stores only the filename in the map JSON, so the backend resolves them correctly. \
+**Keyboard shortcuts:**
+
+| Shortcut | Action |
+|---|---|
+| `Ctrl/Cmd+S` | Save |
+| `Ctrl/Cmd+Shift+S` | Save as |
+| `Ctrl/Cmd+O` | Open |
+| `Ctrl/Cmd+Z` | Undo |
+| `Ctrl/Cmd+Shift+Z` | Redo |
+| `Delete` / `Backspace` | Delete selected node or item |
+| `Escape` | Deselect |
+
+---
+
 ## Project structure
 
 ```
