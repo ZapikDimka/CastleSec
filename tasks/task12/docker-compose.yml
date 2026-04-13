@@ -1,0 +1,7 @@
+services:
+  task12:
+    build: .
+    image: castlesec-task12:latest
+    ports:
+      - "18012:7681"
+    restart: unless-stopped
