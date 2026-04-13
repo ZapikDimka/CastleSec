@@ -1,0 +1,5 @@
+services:
+  test_web:
+    build: .
+    ports:
+      - "9090:8080"

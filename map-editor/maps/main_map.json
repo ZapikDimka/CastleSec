@@ -1287,7 +1287,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "task14",
+                  "task": "test_web",
                   "on_success": [
                     {
                       "type": "SetImageFunction",
@@ -6185,7 +6185,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "task12",
+                  "task": "test_web",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
@@ -6371,7 +6371,7 @@
               "conditions": [
                 {
                   "type": "HasItemCondition",
-                  "item": "ITEM_key"
+                  "item": "ITEM_12"
                 }
               ],
               "functions": [
