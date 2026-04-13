@@ -6185,7 +6185,7 @@
               "functions": [
                 {
                   "type": "SolveTaskFunction",
-                  "task": "test_web",
+                  "task": "task12",
                   "on_success": [
                     {
                       "type": "PickUpItemFunction",
