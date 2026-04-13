@@ -1,0 +1,320 @@
+import logging
+import random
+from typing import Any, Optional
+
+from pydantic import BaseModel, ValidationError
+
+from castle_sec_game.game.asset_loader import AssetLoader
+from castle_sec_game.game.types import *
+from castle_sec_game.task.task import TaskResult, TaskRunner
+
+
+class Game:
+    def __init__(self, raw_json: dict, images_dir: str, tasks_dir: str):
+        self.ctx = Context()
+        self._tasks_dir = tasks_dir
+        self._solved_tasks: set[str] = set()
+
+        loader = AssetLoader(self.ctx)
+        loader.load_all(images_dir=images_dir, tasks_dir=tasks_dir)
+
+        self.game_data = GameData.model_validate(raw_json)
+        self._register_objects_to_context()
+        self._resolve_all_references(self.game_data)
+        starting_node = self.game_data.root.resolve(self.ctx).root
+        self.state = GameState(
+            current_map=self.game_data.root,
+            current_node=starting_node,
+            inventory=Inventory(items=[]),
+            visited_nodes=[starting_node.ref_id]
+        )
+
+        self._task: Optional[TaskRunner] = None
+        self._task_callbacks: dict[str, list[BaseFunction]] = {"success": [], "failure": []}
+        self._task_once_action: Optional[tuple[Node, Action]] = None
+        self._step()
+
+    def _register_objects_to_context(self):
+        for item in self.game_data.items:
+            self.ctx.register_object(item.id, item)
+
+        for game_map in self.game_data.maps:
+            self.ctx.register_object(game_map.id, game_map)
+            for node in game_map.nodes:
+                self.ctx.register_object(node.id, node)
+
+    def _resolve_all_references(self, obj: Any):
+        match obj:
+            case Ref():
+                obj.resolve(self.ctx)
+            case BaseModel():
+                for _, val in obj:
+                    self._resolve_all_references(val)
+            case list():
+                for item in obj:
+                    self._resolve_all_references(item)
+            case dict():
+                for val in obj.values():
+                    self._resolve_all_references(val)
+
+    @property
+    def current_node(self) -> Node:
+        return self.state.current_node.resolve(self.ctx)
+
+    @property
+    def actions(self) -> list:
+        return self._actions
+
+    @property
+    def inventory(self) -> Inventory:
+        return self.state.inventory
+
+    @property
+    def is_solving_task(self) -> bool:
+        return self._task is not None
+
+    @property
+    def task_url(self) -> str | None:
+        if self._task is None:
+            return None
+        return self._task.get_url()
+
+    def tick(self):
+        if self._task is not None and self._task.get_result() is not None:
+            self._step()
+
+    async def complete_current_task(self) -> bool:
+        if self._task is None:
+            return False
+
+        await self._task.mark_success()
+        self._step()
+        return True
+
+    async def close_current_task(self) -> bool:
+        if self._task is None:
+            return False
+
+        await self._task.terminate()
+        self._step()
+        return True
+
+    def act(self, action_index: Optional[int] = None) -> Any:
+        if action_index is None:
+            self._step()
+            return
+
+        if self.is_solving_task:
+            return
+
+        self.state.message = None
+        node = self.current_node
+        action = self._actions[action_index]
+
+        for function in action.functions:
+            self._run_function(function)
+
+        if action.once:
+            solve_task_fn = next((f for f in action.functions if f.type == "SolveTaskFunction"), None)
+            if solve_task_fn and solve_task_fn.remove_on_success:
+                self._task_once_action = (node, action)
+            else:
+                node.actions.remove(action)
+
+        self._step()
+
+    def _step(self):
+        self._build_actions()
+
+    def _build_actions(self) -> list[Action]:
+        self._actions = []
+        if self._task is not None:
+            res = self._task.get_result()
+            if res is None:
+                return self._actions
+
+            is_success = res.is_success()
+            if is_success:
+                self._solved_tasks.add(self._task.name)
+
+            if res == TaskResult.TERMINATED:
+                funcs_to_run: list[BaseFunction] = []
+            else:
+                funcs_to_run = (
+                    self._task_callbacks.get("success", [])
+                    if is_success
+                    else self._task_callbacks.get("failure", [])
+                )
+
+            self._task = None
+            self._task_callbacks = {}
+
+            if is_success and self._task_once_action is not None:
+                once_node, once_action = self._task_once_action
+                if once_action in once_node.actions:
+                    once_node.actions.remove(once_action)
+            self._task_once_action = None
+
+            for func in funcs_to_run:
+                self._run_function(func)
+
+        src = self.current_node.actions
+        for action in src:
+            if self._action_targets_solved_task(action):
+                continue
+            if self._evaluate_action_conditions(action):
+                self._actions.append(action)
+
+        return self._actions
+
+    def _action_targets_solved_task(self, action: Action) -> bool:
+        return any(self._functions_target_solved_task(action.functions))
+
+    def _functions_target_solved_task(self, functions: list[FunctionType]):
+        for function in functions:
+            if function.type == "SolveTaskFunction":
+                yield function.task.root in self._solved_tasks
+            elif function.type == "ConditionalFunction":
+                yield from self._functions_target_solved_task(function.on_success)
+                yield from self._functions_target_solved_task(function.on_failure)
+            elif function.type == "RandomFunction":
+                for branch in function.branches:
+                    yield from self._functions_target_solved_task(branch.functions)
+
+    def _check_condition(self, condition) -> bool:
+        inventory_ids = {ref.ref_id for ref in self.state.inventory.items}
+        result = True
+        match condition.type:
+            case "HasItemCondition":
+                result = condition.item.ref_id in inventory_ids
+            case "NodeStateCondition":
+                target = condition.target_node.resolve(self.ctx) if condition.target_node else self.current_node
+                result = target.state == condition.value
+            case "GameVariableCondition":
+                if condition.operator == "eq":
+                    result = self.state.variables.get(condition.key) == condition.value
+                else:
+                    try:
+                        var_num = float(self.state.variables.get(condition.key, 0))
+                        cond_num = float(condition.value or 0)
+                        match condition.operator:
+                            case "gt":  result = var_num > cond_num
+                            case "gte": result = var_num >= cond_num
+                            case "lt":  result = var_num < cond_num
+                            case "lte": result = var_num <= cond_num
+                            case "mod": result = int(cond_num) != 0 and int(var_num) % int(cond_num) == 0
+                            case "mod": result = var_num % cond_num == 0
+                    except (ValueError, TypeError):
+                        result = False
+            case "AnyCondition":
+                result = any(self._check_condition(c) for c in condition.conditions)
+            case "AllCondition":
+                result = all(self._check_condition(c) for c in condition.conditions)
+        return result ^ bool(condition.negate)
+
+    def _evaluate_action_conditions(self, action: Action) -> bool:
+        return all(self._check_condition(c) for c in action.conditions)
+
+    def _run_function(self, function: BaseFunction):
+        match function.type:
+            case "MoveFunction":
+                self.state.prev_node = self.state.current_node
+                self.state.current_node = function.to
+                if function.to.ref_id not in self.state.visited_nodes:
+                    self.state.visited_nodes.append(function.to.ref_id)
+
+            case "SetTextFunction":
+                target_node = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
+                var_name = function.variable
+
+                if hasattr(target_node, var_name):
+                    try:
+                        setattr(target_node, var_name, function.value)
+                    except ValidationError as e:
+                        raise TypeError(
+                            f"Script Error: Cannot assign value to '{var_name}' on {type(target_node).__name__}. "
+                            f"Type mismatch.\nDetails: {e}"
+                        )
+                else:
+                    raise ValueError(
+                        f"Runtime Error: Field '{var_name}' does not exist on {type(target_node).__name__}"
+                    )
+
+            case "SetImageFunction":
+                target_node = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
+                setattr(target_node, "image", function.value)
+
+            case "PickUpItemFunction":
+                self.state.inventory.items.append(function.item)
+
+            case "RemoveItemFunction":
+                self.state.inventory.items = [
+                    ref for ref in self.state.inventory.items
+                    if ref.ref_id != function.item.ref_id
+                ]
+
+            case "SetNodeStateFunction":
+                target = function.target_node.resolve(self.ctx) if function.target_node else self.current_node
+                target.state = function.value
+
+            case "SetGameVariableFunction":
+                if function.value is None:
+                    self.state.variables.pop(function.key, None)
+                else:
+                    self.state.variables[function.key] = function.value
+
+            case "IncrementGameVariableFunction":
+                try:
+                    current = int(self.state.variables.get(function.key, 0))
+                    self.state.variables[function.key] = str(current + function.amount)
+                except ValueError:
+                    logging.warning(
+                        f"IncrementGameVariableFunction: cannot increment '{function.key}' "
+                        f"— current value is non-integer: '{self.state.variables.get(function.key)}'"
+                    )
+
+            case "SolveTaskFunction":
+                task_name = function.task.root
+                if task_name in self._solved_tasks:
+                    self.state.message = f"Завдання '{task_name}' уже вирішене."
+                    return
+
+                self._task = TaskRunner(name=task_name, tasks_dir=self._tasks_dir)
+                self._task_callbacks = {
+                    "success": function.on_success,
+                    "failure": function.on_failure
+                }
+
+                self._task.run()
+
+            case "ChangeMapFunction":
+                self.state.prev_node = self.state.current_node
+                self.state.current_map = function.map
+                self.state.current_node = function.node
+                if function.node.ref_id not in self.state.visited_nodes:
+                    self.state.visited_nodes.append(function.node.ref_id)
+
+            case "EndGameFunction":
+                self.state.ended = True
+                if function.message:
+                    self.state.message = function.message
+
+            case "ShowMessageFunction":
+                self.state.message = function.message
+
+            case "ConditionalFunction":
+                if self._check_condition(function.condition):
+                    for f in function.on_success:
+                        self._run_function(f)
+                else:
+                    for f in function.on_failure:
+                        self._run_function(f)
+
+            case "RandomFunction":
+                if not function.branches:
+                    return
+                branch = random.choices(function.branches, weights=[b.weight for b in function.branches])[0]
+                if branch.once:
+                    function.branches.remove(branch)
+                for f in branch.functions:
+                    self._run_function(f)

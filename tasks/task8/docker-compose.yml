@@ -17,7 +17,7 @@ services:
 
   task8:
     build: .
-    container_name: task8
+    image: castlesec-task8:latest
     depends_on:
       db:
         condition: service_healthy

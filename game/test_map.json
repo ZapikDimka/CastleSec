@@ -1,0 +1,133 @@
+{
+  "items": [
+    {
+      "id": "dog_shit",
+      "name": "Dog Shit",
+      "image": "item_icon_placeholder.png"
+    }
+  ],
+  "root": "MainMap",
+  "maps": [
+    {
+      "id": "MainMap",
+      "name": "Main Map",
+      "root": "cell_01",
+      "nodes": [
+        {
+          "id": "cell_01",
+          "name": "Dungeon Cell",
+          "text": "You are in a damp cell. (Called {node.name} in {map.name})",
+          "image": "img1.png",
+          "coords": {"x": 0, "y": 0},
+          "actions": [
+            {
+              "label": "Pick up",
+              "once": true,
+              "functions": [
+                {
+                  "type": "PickUpItemFunction",
+                  "item": "dog_shit"
+                }
+              ]
+            },
+            {
+              "label": "Solve task",
+              "once": true,
+              "functions": [
+                {
+                  "type": "SolveTaskFunction",
+                  "task": "test_web",
+                  "on_success": [{"type": "ShowMessageFunction", "message": "Task solved successfully!"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "Task failed. Try again."}]
+                }
+              ]
+            },
+            {
+              "label": "Kick the door open",
+              "functions": [
+                {
+                  "type": "SetTextFunction",
+                  "target_node": "cell_01",
+                  "variable": "text",
+                  "value": "You are in a damp cell. The iron door is broken off its hinges."
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door %",
+              "conditions": [
+                {
+                  "type": "HasItemCondition",
+                  "item": "dog_shit"
+                }
+              ],
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "hallway_01"
+                }
+              ]
+            },
+            {
+              "label": "Walk through the door",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "label": "Walk to some room",
+                  "to": "room_01"
+                }
+              ]
+            },
+            {
+              "label": "Try the heavy door",
+              "functions": [
+                {
+                  "type": "ConditionalFunction",
+                  "condition": {"type": "HasItemCondition", "item": "dog_shit"},
+                  "on_success": [{"type": "MoveFunction", "to": "hallway_01"}],
+                  "on_failure": [{"type": "ShowMessageFunction", "message": "The door won't budge."}]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "hallway_01",
+          "name": "Dark Hallway",
+          "text": "It is too dark to see anything.",
+          "image": "img2.png",
+          "coords": {"x": 1, "y": 0},
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "id": "room_01",
+          "name": "Some Room",
+          "text": "Some room text",
+          "image": "img3.png",
+          "coords": {"x": 0, "y": 1},
+          "actions": [
+            {
+              "label": "Go back to the cell",
+              "functions": [
+                {
+                  "type": "MoveFunction",
+                  "to": "cell_01"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

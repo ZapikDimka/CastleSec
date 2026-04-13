@@ -1,8 +1,8 @@
 version: '3.8'
 services:
-  postal-tower:
-    container_name: task5
+  task5:
     build: .
+    image: castlesec-task5:latest
     ports:
       - "8080:8080"
     restart: always

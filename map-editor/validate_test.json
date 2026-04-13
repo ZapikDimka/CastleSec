@@ -1,0 +1,61 @@
+{
+    "items": {
+        "ITEM_key": {
+            "name": "Rusty Key"
+        },
+        "bad_prefix_item": {
+            "name": "Item with bad prefix"
+        }
+    },
+    "root": "NODE_root",
+    "nodes": {
+        "NODE_root": {
+            "name": "Start Room",
+            "text": "You are in a room.",
+            "actions": [
+                {
+                    "type": "move",
+                    "to": "NODE_valid_target"
+                },
+                {
+                    "type": "move",
+                    "to": "NODE_missing"
+                },
+                {
+                    "type": "pickup",
+                    "item": "ITEM_missing"
+                },
+                {
+                    "type": "if",
+                    "condition": {
+                        "type": "has_item",
+                        "item": "ITEM_also_missing"
+                    },
+                    "action": {
+                        "type": "move",
+                        "to": "NODE_valid_target"
+                    }
+                },
+                {
+                    "type": "pickup",
+                    "item": "bad_prefix_item"
+                }
+            ]
+        },
+        "NODE_valid_target": {
+            "name": "Valid Room",
+            "text": "A valid room connected from root.",
+            "actions": []
+        },
+        "bad_prefix_node": {
+            "name": "Bad Prefix Node",
+            "text": "This node has an invalid ID prefix and is also an orphan.",
+            "actions": []
+        },
+        "NODE_orphan": {
+            "name": "Orphan Room",
+            "text": "Nothing links to this room.",
+            "actions": []
+        }
+    }
+}

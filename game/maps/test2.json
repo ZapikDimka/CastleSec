@@ -1,0 +1,107 @@
+{
+  "items": {
+    "ITEM_dog_shit": {
+      "name": "Dog Shit"
+    },
+    "ITEM_key": {
+      "name": "Key"
+    },
+    "ITEM_golden_loaf": {
+      "name": "Golden Loaf",
+      "image": "ic_cross.svg"
+    }
+  },
+  "root": "NODE_root",
+  "nodes": {
+    "NODE_root": {
+      "name": "Root Node",
+      "text": "You see a root.",
+      "actions": [
+        {
+          "type": "return"
+        },
+        {
+          "type": "move",
+          "to": "NODE_a"
+        },
+        {
+          "type": "move",
+          "to": "NODE_b"
+        },
+        {
+          "type": "solve_task",
+          "name": "test"
+        }
+      ],
+      "image": "image_0(6).jpg"
+    },
+    "NODE_a": {
+      "name": "A Node",
+      "text": "Hello, Leatherman",
+      "actions": [
+        {
+          "type": "return"
+        },
+        {
+          "type": "pickup",
+          "item": "ITEM_key"
+        },
+        {
+          "type": "move",
+          "to": "NODE_4"
+        }
+      ],
+      "image": "image_0(6).jpg"
+    },
+    "NODE_b": {
+      "name": "B Node",
+      "text": "You encounter node B",
+      "actions": [
+        {
+          "type": "return"
+        },
+        {
+          "type": "pickup",
+          "item": "ITEM_dog_shit"
+        },
+        {
+          "type": "if",
+          "condition": {
+            "type": "has_item",
+            "item": "ITEM_dog_shit"
+          },
+          "action": {
+            "type": "move",
+            "to": "NODE_a"
+          }
+        }
+      ]
+    },
+    "NODE_4": {
+      "name": "New Node",
+      "text": "",
+      "actions": [],
+      "image": "ic_cross.svg"
+    },
+    "NODE_5": {
+      "name": "New Node3",
+      "text": "",
+      "actions": []
+    },
+    "NODE_6": {
+      "name": "New Node4",
+      "text": "",
+      "actions": []
+    },
+    "NODE_7": {
+      "name": "2New Node",
+      "text": "",
+      "actions": []
+    },
+    "NODE_8": {
+      "name": "New Node",
+      "text": "",
+      "actions": []
+    }
+  }
+}

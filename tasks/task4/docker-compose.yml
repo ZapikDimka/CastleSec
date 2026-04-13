@@ -1,8 +1,8 @@
 version: '3'
 services:
-  glass-house:
+  task4:
     build: ./app
-    container_name: task4
+    image: castlesec-task4:latest
     ports:
       - "8080:8080"
     environment:

@@ -15,9 +15,9 @@ services:
       timeout: 3s
       retries: 20
 
-  app:
-    container_name: task7
+  task7:
     build: .
+    image: castlesec-task7:latest
     depends_on:
       db:
         condition: service_healthy
