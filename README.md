@@ -107,4 +107,4 @@ map-editor/          # Map data and assets
 
 1. The **frontend** (`web`) serves the game UI and talks to the backend API.
 2. The **backend** runs the game engine and, when a player enters a challenge room, spins up the corresponding task container via Docker Compose.
-3. Each **task** is an isolated Docker container exposing a web challenge on port 8080. The backend proxies the player to it and tears the container down when the task is closed or completed.
+3. Each **task** is an isolated Docker container exposing a web challenge on some port. The backend proxies the player to it and tears the container down when the task is closed or completed.
